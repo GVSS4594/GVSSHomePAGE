@@ -27,5 +27,7 @@ jobs:
         run: clasp push -f
 
       - name: Update Staging Deployment
-        if: ${{ secrets.STAGING_DEPLOYMENT_ID != '' }}
-        run: clasp deploy -i ${{ secrets.STAGING_DEPLOYMENT_ID }} -d "Auto-deployed Staging"
+        env:
+          STAGING_DEPLOYMENT_ID: ${{ secrets.STAGING_DEPLOYMENT_ID }}
+        if: env.STAGING_DEPLOYMENT_ID != ''
+        run: clasp deploy -i $STAGING_DEPLOYMENT_ID -d "Auto-deployed Staging"

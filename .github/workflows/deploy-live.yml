@@ -27,5 +27,7 @@ jobs:
         run: clasp push -f
 
       - name: Update Live Production Deployment
-        if: ${{ secrets.LIVE_DEPLOYMENT_ID != '' }}
-        run: clasp deploy -i ${{ secrets.LIVE_DEPLOYMENT_ID }} -d "Auto-deployed Live Production"
+        env:
+          LIVE_DEPLOYMENT_ID: ${{ secrets.LIVE_DEPLOYMENT_ID }}
+        if: env.LIVE_DEPLOYMENT_ID != ''
+        run: clasp deploy -i $LIVE_DEPLOYMENT_ID -d "Auto-deployed Live Production"
