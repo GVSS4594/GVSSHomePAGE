@@ -35,6 +35,16 @@
     .btn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 15px; }
     .visitor-count { background: #e9ecef; color: #495057; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
     .visitor-scope { color: #6c757d; font-size: 12px; }
+    .visitor-calendar-panel { display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+    .visitor-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .visitor-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; text-align: center; }
+    .visitor-calendar-day-name { font-size: 12px; font-weight: 700; color: #475569; }
+    .visitor-calendar-cell { min-height: 42px; padding: 4px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #334155; }
+    .visitor-calendar-cell:hover, .visitor-calendar-cell.selected { border-color: #2563eb; background: #eff6ff; }
+    .visitor-calendar-date { font-size: 11px; font-weight: 600; }
+    .visitor-calendar-count { font-size: 10px; font-weight: 700; color: #166534; }
+    .visitor-records { margin-top: 16px; }
+    .visitor-record { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
 
     .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #dee2e6; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
@@ -105,6 +115,19 @@
       <span class="visitor-count">Total Visitors: <span id="totalVisitorsCount">Loading...</span></span>
       <span class="visitor-count">Today’s Visitors: <span id="todayVisitorsCount">Loading...</span></span>
       <span class="visitor-scope">Recorded visits, shared across Live and Staging</span>
+      <button class="btn btn-primary" id="visitorCalendarToggle" type="button" aria-expanded="false" onclick="toggleVisitorCalendar()">📅 Visitor Calendar</button>
+    </div>
+
+    <div class="visitor-calendar-panel" id="visitorCalendarPanel">
+      <div class="visitor-calendar-header">
+        <button class="btn btn-primary" type="button" style="padding: 4px 8px; font-size: 12px;" onclick="changeVisitorCalendarMonth(-1)">◀ Prev</button>
+        <strong id="visitorCalendarMonthLabel"></strong>
+        <button class="btn btn-primary" type="button" style="padding: 4px 8px; font-size: 12px;" onclick="changeVisitorCalendarMonth(1)">Next ▶</button>
+      </div>
+      <div class="visitor-calendar-grid" id="visitorCalendarGrid"></div>
+      <div class="visitor-records" id="visitorRecords">
+        <strong id="visitorRecordsHeading">Select a date to view recorded visits and locations.</strong>
+      </div>
     </div>
 
     <div class="table-responsive">
@@ -131,6 +154,10 @@
 
   <script>
     var CURRENT_ENV = "<?= env ?>";
+    var visitorDailyCounts = {};
+    var visitorCalendarYear = new Date().getFullYear();
+    var visitorCalendarMonth = new Date().getMonth();
+    var selectedVisitorDate = "";
 
     window.onload = function() {
       document.querySelector('input[name="envRadio"][value="' + CURRENT_ENV + '"]').checked = true;
@@ -178,6 +205,8 @@
           }
           document.getElementById('totalVisitorsCount').textContent = stats.totalVisitors || 0;
           document.getElementById('todayVisitorsCount').textContent = stats.todayVisitors || 0;
+          visitorDailyCounts = stats.dailyCounts || {};
+          renderVisitorCalendar();
         })
         .withFailureHandler(function(err) {
           document.getElementById('totalVisitorsCount').textContent = 'Unavailable';
@@ -185,6 +214,108 @@
           console.error('Failed to load visitor stats: ' + err.message);
         })
         .getAdminVisitorStats();
+    }
+
+    function toggleVisitorCalendar() {
+      var panel = document.getElementById('visitorCalendarPanel');
+      var isOpen = panel.style.display !== 'block';
+      panel.style.display = isOpen ? 'block' : 'none';
+      document.getElementById('visitorCalendarToggle').setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) renderVisitorCalendar();
+    }
+
+    function changeVisitorCalendarMonth(offset) {
+      visitorCalendarMonth += offset;
+      if (visitorCalendarMonth < 0) {
+        visitorCalendarMonth = 11;
+        visitorCalendarYear--;
+      } else if (visitorCalendarMonth > 11) {
+        visitorCalendarMonth = 0;
+        visitorCalendarYear++;
+      }
+      renderVisitorCalendar();
+    }
+
+    function renderVisitorCalendar() {
+      var grid = document.getElementById('visitorCalendarGrid');
+      grid.innerHTML = '';
+      var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      document.getElementById('visitorCalendarMonthLabel').textContent = monthNames[visitorCalendarMonth] + ' ' + visitorCalendarYear;
+      ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].forEach(function(dayName) {
+        var heading = document.createElement('div');
+        heading.className = 'visitor-calendar-day-name';
+        heading.textContent = dayName;
+        grid.appendChild(heading);
+      });
+
+      var firstDay = new Date(visitorCalendarYear, visitorCalendarMonth, 1).getDay();
+      var daysInMonth = new Date(visitorCalendarYear, visitorCalendarMonth + 1, 0).getDate();
+      for (var blank = 0; blank < firstDay; blank++) grid.appendChild(document.createElement('div'));
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        var dateKey = visitorCalendarYear + '-' + String(visitorCalendarMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        var count = Number(visitorDailyCounts[dateKey]) || 0;
+        var cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'visitor-calendar-cell' + (dateKey === selectedVisitorDate ? ' selected' : '');
+        cell.title = dateKey + ': ' + count + ' visitors';
+        cell.onclick = (function(selectedDate) {
+          return function() { loadVisitorRecords(selectedDate); };
+        })(dateKey);
+
+        var dateNumber = document.createElement('div');
+        dateNumber.className = 'visitor-calendar-date';
+        dateNumber.textContent = day;
+        var countLabel = document.createElement('div');
+        countLabel.className = 'visitor-calendar-count';
+        countLabel.textContent = count || '';
+        cell.appendChild(dateNumber);
+        cell.appendChild(countLabel);
+        grid.appendChild(cell);
+      }
+    }
+
+    function loadVisitorRecords(dateKey) {
+      selectedVisitorDate = dateKey;
+      renderVisitorCalendar();
+      var recordsContainer = document.getElementById('visitorRecords');
+      recordsContainer.innerHTML = '';
+      var heading = document.createElement('strong');
+      heading.id = 'visitorRecordsHeading';
+      heading.textContent = 'Visits on ' + dateKey + ' (loading...)';
+      recordsContainer.appendChild(heading);
+
+      google.script.run
+        .withSuccessHandler(function(records) {
+          if (dateKey !== selectedVisitorDate) return;
+          recordsContainer.innerHTML = '';
+          var recordsHeading = document.createElement('strong');
+          recordsHeading.id = 'visitorRecordsHeading';
+          recordsHeading.textContent = 'Visits on ' + dateKey + ': ' + records.length;
+          recordsContainer.appendChild(recordsHeading);
+          if (!records.length) {
+            var emptyMessage = document.createElement('div');
+            emptyMessage.className = 'visitor-record';
+            emptyMessage.textContent = 'No visit records found for this date.';
+            recordsContainer.appendChild(emptyMessage);
+            return;
+          }
+          records.forEach(function(record) {
+            var entry = document.createElement('div');
+            entry.className = 'visitor-record';
+            entry.textContent = record.timestamp + ' — ' + (record.location || 'No location recorded');
+            recordsContainer.appendChild(entry);
+          });
+        })
+        .withFailureHandler(function(err) {
+          if (dateKey !== selectedVisitorDate) return;
+          recordsContainer.innerHTML = '';
+          var errorMessage = document.createElement('div');
+          errorMessage.className = 'visitor-record';
+          errorMessage.textContent = 'Failed to load visit records: ' + err.message;
+          recordsContainer.appendChild(errorMessage);
+        })
+        .getVisitorRecordsForDate(dateKey);
     }
 
     function loadRequests() {

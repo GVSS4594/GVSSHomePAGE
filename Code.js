@@ -118,6 +118,38 @@ function getAdminVisitorStats() {
   return buildVisitorStatsResponse_(dailyMap, todayStr);
 }
 
+function getVisitorRecordsForDate(dateStr) {
+  if (typeof dateStr !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    throw new Error("A date in yyyy-MM-dd format is required.");
+  }
+  var requestedDate = new Date(dateStr + "T00:00:00Z");
+  if (isNaN(requestedDate.getTime()) || requestedDate.toISOString().substring(0, 10) !== dateStr) {
+    throw new Error("The requested date is invalid.");
+  }
+
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Visitors");
+  if (!sheet) return [];
+
+  var data = sheet.getDataRange().getValues();
+  var records = [];
+  for (var i = 1; i < data.length; i++) {
+    var visitDate = data[i][0] instanceof Date
+      ? Utilities.formatDate(data[i][0], "Asia/Kolkata", "yyyy-MM-dd")
+      : String(data[i][0] || "").trim();
+    if (visitDate !== dateStr) continue;
+
+    var timestamp = data[i][3] instanceof Date
+      ? Utilities.formatDate(data[i][3], "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss")
+      : String(data[i][3] || "");
+    records.push({
+      date: visitDate,
+      timestamp: timestamp,
+      location: String(data[i][2] == null ? "" : data[i][2])
+    });
+  }
+  return records;
+}
+
 function buildVisitorStatsResponse_(dailyMap, todayStr) {
   let totalVisitors = 0;
   Object.keys(dailyMap).forEach(function(dateKey) {
