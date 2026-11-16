@@ -1,12 +1,43 @@
-var SPREADSHEET_ID = "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os"; 
-var SHEET_NAME = "Sheet1"; 
+var SPREADSHEET_ID = "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os";
+var SHEET_NAME = "Sheet1";
 
-// --- RAZORPAY CREDENTIALS ---
-var RAZORPAY_KEY_ID = "YOUR_KEY_ID"; 
-var RAZORPAY_KEY_SECRET = "YOUR_KEY_SECRET";
+// --- ENVIRONMENT CONFIGURATIONS ---
+var ENV_CONFIG = {
+  "STAGING": {
+    SPREADSHEET_ID: "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os",
+    SHEET_NAME: "Sheet_Staging",
+    DRIVE_FOLDER: "POS_Activations_Staging",
+    SUPABASE_URL: "https://pcawzzubhylrplrrgpfv.supabase.co",
+    SUPABASE_KEY: "YOUR_SUPABASE_SECRET_KEY",
+    RAZORPAY_KEY_ID: "YOUR_TEST_KEY_ID",
+    RAZORPAY_KEY_SECRET: "YOUR_TEST_KEY_SECRET"
+  },
+  "LIVE": {
+    SPREADSHEET_ID: "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os",
+    SHEET_NAME: "Sheet1",
+    DRIVE_FOLDER: "POS_Activations",
+    SUPABASE_URL: "https://xwlzckxsspgyvgszueht.supabase.co",
+    SUPABASE_KEY: "sb_publishable_USFK0tj1qga8bDoNxdx06w_-uXLDQ5K",
+    RAZORPAY_KEY_ID: "YOUR_KEY_ID",
+    RAZORPAY_KEY_SECRET: "YOUR_KEY_SECRET"
+  }
+};
+
+function getConfig(env) {
+  var requestedEnv = getEnvironment_(env);
+  return ENV_CONFIG[requestedEnv];
+}
+
+function getInvoiceVisibility() {
+  var props = PropertiesService.getScriptProperties();
+  var val = props.getProperty('SHOW_INVOICE');
+  return val !== 'false';
+}
 
 function doGet(e) {
-  var env = getEnvironment_(e && e.parameter ? e.parameter.env : "");
+  var currentEnv = getEnvironment_(e && e.parameter ? e.parameter.env : "");
+  var currentAppMode = (e && e.parameter && e.parameter.app) ? String(e.parameter.app).toLowerCase() : "desktop";
+
   if (e && e.parameter && e.parameter.page === "policies") {
     return HtmlService.createTemplateFromFile('Policies').evaluate()
         .setTitle('Store Policies & Legal Terms')
@@ -15,8 +46,8 @@ function doGet(e) {
 
   if (e && e.parameter && e.parameter.mode === "admin") {
     var adminTemplate = HtmlService.createTemplateFromFile('Admin');
-    adminTemplate.env = env;
     adminTemplate.showInvoice = getInvoiceVisibility();
+    adminTemplate.env = currentEnv;
     return adminTemplate.evaluate()
         .setTitle('Admin Dashboard - License Manager')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -24,25 +55,17 @@ function doGet(e) {
 
   var indexTemplate = HtmlService.createTemplateFromFile('Index');
   indexTemplate.showInvoice = getInvoiceVisibility();
+  indexTemplate.env = currentEnv;
+  indexTemplate.appMode = currentAppMode;
+
   return indexTemplate.evaluate()
       .setTitle('Hotel POS License Generator')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function getEnvironment_(env) {
   return String(env || "").toUpperCase() === "STAGING" ? "STAGING" : "LIVE";
-}
-
-function getConfig(env) {
-  var environment = getEnvironment_(env);
-  return {
-    SPREADSHEET_ID: SPREADSHEET_ID,
-    SHEET_NAME: environment === "STAGING" ? "Sheet_Staging" : SHEET_NAME
-  };
-}
-
-function getInvoiceVisibility() {
-  return PropertiesService.getScriptProperties().getProperty("SHOW_INVOICE") !== "false";
 }
 
 function toggleInvoiceVisibility(isVisible) {
@@ -52,7 +75,7 @@ function toggleInvoiceVisibility(isVisible) {
 }
 
 // --- VISITOR & LOCATION ANALYTICS BACKEND ---
-function recordWebsiteVisit(clientLocation) {
+function recordWebsiteVisit(clientLocation, env) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(5000);
@@ -70,7 +93,8 @@ function recordWebsiteVisit(clientLocation) {
     dailyMap[todayStr] = (Number(dailyMap[todayStr]) || 0) + 1;
     props.setProperty("VISITOR_DAILY_MAP", JSON.stringify(dailyMap));
 
-    syncVisitToSheet_(SPREADSHEET_ID, todayStr, dailyMap[todayStr], clientLocation || "Unknown Location", timestamp);
+    var config = getConfig(env);
+    syncVisitToSheet_(config.SPREADSHEET_ID, todayStr, dailyMap[todayStr], clientLocation || "Unknown Location", timestamp);
 
     return buildVisitorStatsResponse_(dailyMap, todayStr);
   } catch (err) {
@@ -122,15 +146,16 @@ function syncVisitToSheet_(sheetId, dateStr, count, location, timestamp) {
   }
 }
 
-function checkRequestStatus(requestId) {
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+function checkRequestStatus(requestId, env) {
+  var config = getConfig(env);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
-  
+
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === requestId) { 
+    if (data[i][0] === requestId) {
       return {
-        status: String(data[i][3]), 
-        key: String(data[i][4])     
+        status: String(data[i][3]),
+        key: String(data[i][4])
       };
     }
   }
@@ -142,9 +167,9 @@ function getAllRequests(env) {
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var requestList = [];
-  
+
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0]) { 
+    if (data[i][0]) {
       var timeData = data[i][6];
       var formattedTime = "N/A";
       if (timeData) {
@@ -156,13 +181,13 @@ function getAllRequests(env) {
       }
 
       requestList.push({
-        rowIndex: i + 1, 
+        rowIndex: i + 1,
         requestId: String(data[i][0]),
         systemId: String(data[i][1]),
         clientIdentifier: String(data[i][1]),
         duration: String(data[i][2]),
-        status: String(data[i][3]), 
-        key: String(data[i][4] || ""),    
+        status: String(data[i][3]),
+        key: String(data[i][4] || ""),
         location: String(data[i][5] || "Unknown"),
         timestamp: formattedTime,
         photoUrl: String(data[i][7] || "No Photo"),
@@ -173,40 +198,33 @@ function getAllRequests(env) {
         paymentMethod: String(data[i][12] || "N/A"),
         paymentAmount: String(data[i][13] || "0"),
         invoiceType: String(data[i][14] || "N/A"),
-        appType: String(data[i][15] || "Standalone Application (Desktop)")
+        appType: String(data[i][15] || "").trim() || "Standalone Application (Desktop)"
       });
     }
   }
-  return requestList.reverse(); 
+  return requestList.reverse();
 }
 
-function approveFromAdminPanel(rowIndex, systemId, durationCode, machineType, env) {
+function approveFromAdminPanel(rowIndex, clientIdentifier, durationCode, machineType, env) {
   var config = getConfig(env);
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
-  var approvedKey = generateLicenseKeyLogic(systemId, durationCode);
-  
+  var approvedKey = generateLicenseKeyLogic(clientIdentifier, durationCode, machineType);
   sheet.getRange(rowIndex, 4).setValue("APPROVED");
   sheet.getRange(rowIndex, 5).setValue(approvedKey);
-  
   return approvedKey;
 }
 
-function adminGenerateKey(systemId, durationChoice, locationStr, machineType, appType, env) {
+function adminGenerateKey(clientIdentifier, durationChoice, locationStr, machineType, appType, env) {
   var config = getConfig(env);
   var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
   var durationCode = durationCodes[durationChoice] || '12MON';
-  
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var requestId = "REQ-" + Utilities.getUuid().substring(0, 8).toUpperCase();
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-  
-  var generatedKey = generateLicenseKeyLogic(systemId, durationCode);
+  var generatedKey = generateLicenseKeyLogic(clientIdentifier, durationCode, machineType);
   var loc = locationStr ? locationStr : "Admin Generated";
-  var finalMachineType = machineType || "N/A";
-  var finalAppType = appType || "Standalone Application (Desktop)";
-  
-  sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", finalMachineType, "N/A", "Cash", "0", "Non-GST", finalAppType]);
-  
+  var finalAppType = appType ? appType : "Standalone Application (Desktop)";
+  sheet.appendRow([requestId, String(clientIdentifier || "").trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", machineType, "N/A", "Cash", "0", "Non-GST", finalAppType]);
   return generatedKey;
 }
 
@@ -214,7 +232,7 @@ function deleteMultipleRequests(requestIds, env) {
   var config = getConfig(env);
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
-  
+
   for (var i = data.length - 1; i > 0; i--) {
     if (requestIds.indexOf(data[i][0]) !== -1) {
       sheet.deleteRow(i + 1);
@@ -223,21 +241,23 @@ function deleteMultipleRequests(requestIds, env) {
   return true;
 }
 
-function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType) {
+function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, env, appType) {
+  var config = getConfig(env);
   var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
   var durationCode = durationCodes[durationChoice] || '12MON';
-  
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var requestId = "REQ-" + Utilities.getUuid().substring(0, 8).toUpperCase();
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-  
+  var finalAppType = appType ? appType : "Standalone Application (Desktop)";
+
   var savedPhotoUrl = "No Photo";
   if (photoBase64) {
     try {
       var base64Data = photoBase64.split(',')[1];
       var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', requestId + '_photo.png');
-      var folders = DriveApp.getFoldersByName("POS_Activations");
-      var targetFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder("POS_Activations");
+      var folders = DriveApp.getFoldersByName(config.DRIVE_FOLDER);
+      var targetFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(config.DRIVE_FOLDER);
       var file = targetFolder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       savedPhotoUrl = file.getUrl();
@@ -245,42 +265,43 @@ function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64
       savedPhotoUrl = "Error Saving Photo";
     }
   }
-  
+
   if (durationCode === 'DEMO') {
-    var demoKey = generateLicenseKeyLogic(systemId, durationCode);
-    sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", demoKey, locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType]);
+    var demoKey = generateLicenseKeyLogic(systemId, durationCode, machineType);
+    sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", demoKey, locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, finalAppType]);
     return { status: "APPROVED", key: demoKey };
   } else {
-    sheet.appendRow([requestId, systemId.trim(), durationCode, "PENDING", "", locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType]);
-    
+    sheet.appendRow([requestId, systemId.trim(), durationCode, "PENDING", "", locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, finalAppType]);
+
     if (paymentMethod === 'Online') {
-      var orderResponse = createPaymentOrder(durationChoice, systemId.trim(), requestId, shopName, machineType, areaPin, paymentAmount);
-      return { 
-        status: "PAYMENT_REQUIRED", 
-        requestId: requestId, 
+      var orderResponse = createPaymentOrder(durationChoice, systemId.trim(), requestId, shopName, machineType, areaPin, paymentAmount, env);
+      return {
+        status: "PAYMENT_REQUIRED",
+        requestId: requestId,
         orderId: orderResponse.id || "",
-        amount: orderResponse.amount || (paymentAmount * 100), 
-        message: "Please complete your payment to automatically generate the key. Request ID: " + requestId 
+        amount: orderResponse.amount || (paymentAmount * 100),
+        message: "Please complete your payment to automatically generate the key. Request ID: " + requestId
       };
     } else {
-      return { 
-        status: "PENDING", 
-        requestId: requestId, 
-        message: "Cash payment requested. Please pay the admin directly. Your key will be generated upon admin approval. Request ID: " + requestId 
+      return {
+        status: "PENDING",
+        requestId: requestId,
+        message: "Cash payment requested. Please pay the admin directly. Your key will be generated upon admin approval. Request ID: " + requestId
       };
     }
   }
 }
 
-function createPaymentOrder(durationChoice, systemId, requestId, shopName, machineType, areaPin, paymentAmount) {
-  var amount = parseInt(paymentAmount, 10) * 100; 
-  if (isNaN(amount) || amount <= 0) amount = 500000; 
-  
+function createPaymentOrder(durationChoice, systemId, requestId, shopName, machineType, areaPin, paymentAmount, env) {
+  var config = getConfig(env);
+  var amount = parseInt(paymentAmount, 10) * 100;
+  if (isNaN(amount) || amount <= 0) amount = 500000;
+
   var url = "https://api.razorpay.com/v1/orders";
   var options = {
     "method": "post",
     "headers": {
-      "Authorization": "Basic " + Utilities.base64Encode(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET)
+      "Authorization": "Basic " + Utilities.base64Encode(config.RAZORPAY_KEY_ID + ":" + config.RAZORPAY_KEY_SECRET)
     },
     "payload": {
       "amount": amount,
@@ -297,7 +318,7 @@ function createPaymentOrder(durationChoice, systemId, requestId, shopName, machi
     },
     "muteHttpExceptions": true
   };
-  
+
   var response = UrlFetchApp.fetch(url, options);
   return JSON.parse(response.getContentText());
 }
@@ -305,7 +326,7 @@ function createPaymentOrder(durationChoice, systemId, requestId, shopName, machi
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
-    
+
     if (payload.event === "payment.captured") {
       var paymentData = payload.payload.payment.entity;
       var customerEmail = paymentData.email;
@@ -313,28 +334,29 @@ function doPost(e) {
       var durationChoice = paymentData.notes.duration_choice;
       var reqId = paymentData.notes.request_id;
       var shopName = paymentData.notes.shop_name;
-      
+
       var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
       var durationCode = durationCodes[durationChoice] || '12MON';
-      
-      var generatedKey = generateLicenseKeyLogic(systemId, durationCode);
-      
-      var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+
+      var config = getConfig("LIVE");
+      var generatedKey = generateLicenseKeyLogic(systemId, durationCode, "Desktop");
+
+      var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
       var data = sheet.getDataRange().getValues();
       for (var i = 1; i < data.length; i++) {
         if (data[i][0] === reqId) {
-          sheet.getRange(i + 1, 4).setValue("APPROVED"); 
-          sheet.getRange(i + 1, 5).setValue(generatedKey); 
+          sheet.getRange(i + 1, 4).setValue("APPROVED");
+          sheet.getRange(i + 1, 5).setValue(generatedKey);
           break;
         }
       }
-      
+
       MailApp.sendEmail({
         to: customerEmail,
         subject: "Your Hotel POS License Key",
         body: "Payment Successful for " + shopName + "!\n\nSystem ID: " + systemId + "\nDuration: " + durationCode + "\n\nYour License Key: " + generatedKey + "\n\nPlease enter this key into your POS application."
       });
-      
+
       return ContentService.createTextOutput("Success");
     }
     return ContentService.createTextOutput("Ignored");
@@ -343,12 +365,12 @@ function doPost(e) {
   }
 }
 
-function generateLicenseKeyLogic(systemId, durationCode) {
+function generateLicenseKeyLogic(clientIdentifier, durationCode, machineType) {
   var SECRET_WORD = "MySuperSecretHotelApp2026";
   var today = new Date();
   var generationDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyyMMdd");
-  var rawData = systemId.trim().toUpperCase() + SECRET_WORD + durationCode + generationDate;
-  
+  var rawData = String(clientIdentifier || "").trim().toUpperCase() + SECRET_WORD + String(durationCode || "").trim().toUpperCase() + String(machineType || "").trim().toUpperCase() + generationDate;
+
   var rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, rawData, Utilities.Charset.UTF_8);
   var hexString = "";
   for (var i = 0; i < rawHash.length; i++) {
@@ -358,7 +380,7 @@ function generateLicenseKeyLogic(systemId, durationCode) {
     if (byteString.length == 1) byteString = "0" + byteString;
     hexString += byteString;
   }
-  
+
   var rawKey = hexString.substring(0, 16).toUpperCase();
   return rawKey.substring(0, 4) + "-" + rawKey.substring(4, 8) + "-" + rawKey.substring(8, 12) + "-" + rawKey.substring(12, 16);
 }
@@ -368,9 +390,9 @@ function generateInvoicePDFBase64(requestId, env) {
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var reqData = null;
-  
+
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === requestId) { 
+    if (data[i][0] === requestId) {
       reqData = {
         durationCode: String(data[i][2]),
         key: String(data[i][4] || "PENDING"),
@@ -386,19 +408,19 @@ function generateInvoicePDFBase64(requestId, env) {
       break;
     }
   }
-  
+
   if (!reqData) return null;
-  
+
   var basePrice = reqData.amount;
   var cgst = 0;
   var sgst = 0;
   var gstRows = "";
-  
+
   if (reqData.invoiceType === 'GST') {
     basePrice = reqData.amount / 1.18;
     cgst = basePrice * 0.09;
     sgst = basePrice * 0.09;
-    
+
     gstRows = `
       <tr>
         <td style="padding: 8px 0; font-weight: bold; color: #555;">Base Price:</td>
@@ -414,7 +436,7 @@ function generateInvoicePDFBase64(requestId, env) {
       </tr>
     `;
   }
-  
+
   var html = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; max-width: 800px; margin: auto;">
       <div style="text-align: center; border-bottom: 2px solid #B8860B; padding-bottom: 20px; margin-bottom: 25px;">
@@ -424,11 +446,11 @@ function generateInvoicePDFBase64(requestId, env) {
         <p style="margin: 2px 0; color: #555; font-size: 13px;">📞 +91 9986021497</p>
         <p style="margin: 2px 0; color: #555; font-size: 13px;">✉️ gvss4594@gmail.com | 🌐 https://tinyurl.com/GVSS45</p>
       </div>
-      
+
       <div style="text-align: center; margin-bottom: 25px;">
         <h2 style="color: #333; margin: 0; font-size: 20px; letter-spacing: 1px;">TAX INVOICE</h2>
       </div>
-      
+
       <table style="width: 100%; margin-bottom: 30px;">
         <tr>
           <td style="vertical-align: top; width: 60%;">
@@ -480,7 +502,7 @@ function generateInvoicePDFBase64(requestId, env) {
           </div>
         </div>
       </div>
-      
+
       <div style="margin-top: 50px; font-size: 12px; color: #555; background-color: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
         <h4 style="margin: 0 0 8px 0; color: #333; font-size: 13px;">Terms & Conditions:</h4>
         <ol style="margin: 0; padding-left: 18px; line-height: 1.6;">
@@ -495,7 +517,7 @@ function generateInvoicePDFBase64(requestId, env) {
       </div>
     </div>
   `;
-  
+
   var blob = HtmlService.createHtmlOutput(html).getAs(MimeType.PDF).setName(requestId + ".pdf");
   return Utilities.base64Encode(blob.getBytes());
 }

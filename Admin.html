@@ -32,8 +32,8 @@
     .btn-success:hover { background: #218838; }
     .btn-danger { background: #dc3545; }
     .btn-danger:hover { background: #c82333; }
-    .btn-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
-    .visitor-count { background: #0d9488; }
+    .btn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .visitor-count { background: #e9ecef; color: #495057; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
     .visitor-scope { color: #6c757d; font-size: 12px; }
 
     .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #dee2e6; }
@@ -102,9 +102,9 @@
     <div class="btn-toolbar">
       <button class="btn btn-primary" onclick="loadRequests()">🔄 Refresh List</button>
       <button class="btn btn-danger" onclick="deleteSelected()">🗑️ Delete Selected</button>
-      <button class="btn visitor-count" id="totalVisitorsBtn" type="button">Total Visitors: 0</button>
-      <button class="btn visitor-count" id="todayVisitorsBtn" type="button">Today's Visitors: 0</button>
-      <span class="visitor-scope">Counts are recorded visits (not unique users), shared across Live and Staging.</span>
+      <span class="visitor-count">Total Visitors: <span id="totalVisitorsCount">Loading...</span></span>
+      <span class="visitor-count">Today’s Visitors: <span id="todayVisitorsCount">Loading...</span></span>
+      <span class="visitor-scope">Recorded visits, shared across Live and Staging</span>
     </div>
 
     <div class="table-responsive">
@@ -170,19 +170,19 @@
 
     function loadVisitorStats() {
       google.script.run
-        .withSuccessHandler(function(data) {
-          if (!data) {
-            document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: unavailable";
-            document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: unavailable";
+        .withSuccessHandler(function(stats) {
+          if (!stats) {
+            document.getElementById('totalVisitorsCount').textContent = 'Unavailable';
+            document.getElementById('todayVisitorsCount').textContent = 'Unavailable';
             return;
           }
-          document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: " + data.totalVisitors;
-          document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: " + data.todayVisitors;
+          document.getElementById('totalVisitorsCount').textContent = stats.totalVisitors || 0;
+          document.getElementById('todayVisitorsCount').textContent = stats.todayVisitors || 0;
         })
         .withFailureHandler(function(err) {
-          document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: unavailable";
-          document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: unavailable";
-          alert("Error loading visitor counts: " + err.message);
+          document.getElementById('totalVisitorsCount').textContent = 'Unavailable';
+          document.getElementById('todayVisitorsCount').textContent = 'Unavailable';
+          console.error('Failed to load visitor stats: ' + err.message);
         })
         .getAdminVisitorStats();
     }
@@ -247,7 +247,7 @@
                             <span style="color: #0275d8; font-weight: bold;">₹${row.paymentAmount}</span> <span style="color: #6c757d;">| ${row.paymentMethod} | ${row.invoiceType}</span>
                            </div>`;
 
-        let isWeb = row.appType.includes('Web');
+        let isWeb = String(row.appType || '').includes('Web');
         let appBadgeStyle = isWeb ? 'background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb;' : 'background: #f8f9fa; color: #495057; border: 1px solid #dee2e6;';
         let appBadgeText = isWeb ? '☁️ Web App' : '💻 Desktop App';
 
@@ -309,11 +309,6 @@
           alert("✅ Key Generated in [" + CURRENT_ENV + "]: " + key);
           loadRequests();
         })
-        .withFailureHandler((err) => {
-          btn.innerText = "Generate Key";
-          btn.disabled = false;
-          alert("❌ Key Generation Failed: " + err.message);
-        })
         .adminGenerateKey(sysId, durationChoice, "Admin Generated", machineType, appType, CURRENT_ENV);
     }
 
@@ -364,7 +359,6 @@
           .withSuccessHandler(() => {
             loadRequests();
           })
-          .withFailureHandler((err) => alert("Deletion failed: " + err.message))
           .deleteMultipleRequests(selectedIds, CURRENT_ENV);
       }
     }
