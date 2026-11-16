@@ -340,9 +340,10 @@ function doPost(e) {
       }
       
       MailApp.sendEmail({
-        to: customerEmail,
-        subject: "Your Hotel POS License Key",
-        body: "Payment Successful for " + shopName + "!
+  to: customerEmail,
+  subject: "Your Hotel POS License Key",
+  body: "Payment Successful for " + shopName + "!\n\nSystem ID: " + systemId + "\nDuration: " + durationCode + "\n\nYour License Key: " + generatedKey + "\n\nPlease enter this key into your POS application."
+});
 
 System ID: " + systemId + "
 Duration: " + durationCode + "
