@@ -4,143 +4,225 @@
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-      body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 15px; background-color: #f4f6f9; color: #333; box-sizing: border-box; }
-      .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin: 10px auto; box-sizing: border-box; }
-      .welcome-banner { margin: 0 0 16px; padding: 12px 16px; background: #eaf4ff; border: 1px solid #b8daff; border-radius: 8px; color: #0275d8; font-size: 18px; font-weight: 600; text-align: center; }
-      h2 { text-align: center; color: #0275d8; margin-top: 0; font-size: 24px; }
-      label { font-weight: 600; display: block; margin-top: 20px; margin-bottom: 8px; font-size: 16px; }
-      input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 14px; border: 2px solid #ced4da; border-radius: 8px; box-sizing: border-box; font-size: 16px; background-color: #fff; transition: border-color 0.2s; }
-      input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus { border-color: #0275d8; outline: none; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 32px 20px 20px; background: #f2f6fb; color: #192b3d; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
+      .page-shell { width: 100%; max-width: 1120px; margin: 0 auto; }
+      .site-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+      .brand-mark { display: inline-flex; align-items: center; min-height: 72px; padding: 10px 18px; background: #fff; border: 1px solid #e1e9f2; border-radius: 16px; box-shadow: 0 8px 24px rgba(22, 49, 77, 0.06); }
+      .brand-mark img { display: block; max-height: 52px; width: auto; object-fit: contain; }
+      .welcome-banner { padding: 10px 16px; border: 1px solid #cfe0f5; border-radius: 999px; background: #fff; color: #315b87; font-size: 14px; font-weight: 600; }
+      .hero-panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 34px; margin-bottom: 24px; padding: 34px; overflow: hidden; border-radius: 24px; background: linear-gradient(125deg, #102d4a, #174d79); box-shadow: 0 16px 36px rgba(15, 52, 86, 0.16); }
+      .hero-copy { color: #fff; }
+      .hero-eyebrow { margin: 0 0 12px; color: #a9d8ff; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; }
+      .hero-copy h1 { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.12; letter-spacing: -0.035em; }
+      .hero-copy p:last-child { max-width: 420px; margin: 16px 0 0; color: #d7e7f6; font-size: 16px; line-height: 1.7; }
+      .video-panel { padding: 8px; border: 1px solid rgba(255,255,255,0.25); border-radius: 16px; background: rgba(5, 23, 40, 0.35); }
+      .video-panel video { display: block; width: 100%; height: auto; border-radius: 10px; background: #000; }
+      .generate-license-button { display: block; width: 100%; max-width: 420px; margin: 0 auto 24px; padding: 16px 22px; border: 0; border-radius: 10px; background: #1769aa; box-shadow: 0 5px 12px rgba(23, 105, 170, 0.2); color: #fff; font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
+      .generate-license-button:hover { background: #135a92; }
+      .generate-license-button:focus-visible { outline: 3px solid #2979b8; outline-offset: 3px; }
+      .container { width: 100%; margin: 0 auto; padding: 34px; border: 1px solid #e0e8f1; border-radius: 22px; background: #fff; box-shadow: 0 12px 36px rgba(22, 49, 77, 0.08); }
+      .form-heading { margin-bottom: 28px; padding-bottom: 22px; border-bottom: 1px solid #e9eef4; }
+      .form-heading h2 { margin: 0; color: #153b5c; font-size: 26px; letter-spacing: -0.02em; }
+      .form-heading p { margin: 8px 0 0; color: #718196; font-size: 15px; line-height: 1.5; }
+      .form-section { margin-top: 28px; }
+      .form-section:first-of-type { margin-top: 0; }
+      .form-section h3 { margin: 0 0 16px; color: #264b6d; font-size: 16px; font-weight: 700; }
+      .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+      .field-group { min-width: 0; }
+      .field-group.full-width { grid-column: 1 / -1; }
+      label { display: block; margin: 14px 0 8px; color: #31465b; font-size: 14px; font-weight: 650; }
+      input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 13px 14px; border: 1px solid #cbd6e2; border-radius: 10px; background: #fff; color: #192b3d; font: inherit; font-size: 15px; transition: border-color 0.2s, box-shadow 0.2s; }
+      input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus { border-color: #2979b8; outline: none; box-shadow: 0 0 0 3px rgba(41, 121, 184, 0.13); }
       textarea { resize: vertical; }
-      
-      .camera-box { width: 100%; max-width: 250px; border-radius: 8px; overflow: hidden; background: #000; position: relative; margin: 10px auto; border: 2px solid #ced4da; min-height: 180px; display: flex; align-items: center; justify-content: center; }
-      #videoFeed, #photoPreview { width: 100%; display: block; }
-      
-      .upload-fallback { display: none; text-align: center; padding: 30px 15px; background: #f8f9fa; width: 100%; height: 100%; box-sizing: border-box; }
-      .upload-fallback span { font-size: 40px; display: block; margin-bottom: 10px; }
-      .upload-fallback p { margin: 0; font-weight: bold; color: #555; font-size: 16px; }
-      .upload-fallback small { color: #777; display: block; margin-bottom: 15px; }
+      .camera-box { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 320px; min-height: 190px; margin: 12px auto; overflow: hidden; border: 1px solid #cbd6e2; border-radius: 14px; background: #0c1722; }
+      #videoFeed, #photoPreview { display: block; width: 100%; }
+      .upload-fallback { display: none; width: 100%; height: 100%; padding: 30px 15px; background: #f6f9fc; text-align: center; }
+      .upload-fallback span { display: block; margin-bottom: 10px; font-size: 40px; }
+      .upload-fallback p { margin: 0; color: #35495e; font-size: 16px; font-weight: 700; }
+      .upload-fallback small { display: block; margin-bottom: 15px; color: #718196; }
       input[type="file"] { max-width: 100%; font-size: 14px; }
-
-      .btn-cam { width: 100%; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
-      .btn-cam:hover { background: #59339d; }
-
-      .action-buttons { display: flex; gap: 12px; margin-top: 25px; }
-      .btn-submit { flex: 2; background-color: #0275d8; color: white; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(2, 117, 216, 0.2); }
-      .btn-clear { flex: 1; background-color: #6c757d; color: white; padding: 16px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
-      
-      .result-box { margin-top: 25px; padding: 20px; background-color: #e8f5e9; border-left: 6px solid #28a745; border-radius: 8px; display: none; text-align: center; }
-      .pending-box { margin-top: 25px; padding: 20px; background-color: #fff3cd; border-left: 6px solid #ffc107; border-radius: 8px; display: none; text-align: center; color: #856404; }
-      .key-display { font-family: 'Courier New', Courier, monospace; font-size: 22px; font-weight: bold; color: #1b5e20; margin-top: 15px; letter-spacing: 1px; background: white; padding: 12px; border-radius: 6px; border: 1px dashed #28a745; word-break: break-all; }
-      .btn-check-status { background-color: #ffc107; color: #856404; border: 2px solid #e0a800; padding: 12px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 15px; font-size: 15px; width: 100%; box-sizing: border-box; }
+      .btn-cam { width: 100%; margin-top: 10px; padding: 13px; border: 0; border-radius: 10px; background: #6245a5; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+      .btn-cam:hover { background: #4f378b; }
+      .action-buttons { display: flex; gap: 12px; margin-top: 28px; }
+      .btn-submit { flex: 2; padding: 15px; border: 0; border-radius: 10px; background: #1769aa; box-shadow: 0 5px 12px rgba(23, 105, 170, 0.2); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+      .btn-clear { flex: 1; padding: 15px; border: 0; border-radius: 10px; background: #647587; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+      .result-box { display: none; margin-top: 25px; padding: 20px; border-left: 5px solid #28a745; border-radius: 10px; background: #e8f5e9; text-align: center; }
+      .pending-box { display: none; margin-top: 25px; padding: 20px; border-left: 5px solid #ffc107; border-radius: 10px; background: #fff3cd; color: #856404; text-align: center; }
+      .key-display { margin-top: 15px; padding: 12px; border: 1px dashed #28a745; border-radius: 8px; background: #fff; color: #1b5e20; font-family: 'Courier New', Courier, monospace; font-size: 22px; font-weight: 700; letter-spacing: 1px; word-break: break-all; }
+      .btn-check-status { width: 100%; margin-top: 15px; padding: 12px 20px; border: 2px solid #e0a800; border-radius: 9px; background: #ffc107; color: #856404; font-size: 15px; font-weight: 700; cursor: pointer; }
+      .site-footer { margin-top: 24px; padding: 20px 10px; border-top: 1px solid #dce5ef; color: #718196; font-size: 13px; text-align: center; }
+      .site-footer p { margin: 8px 0; }
+      .site-footer a { margin: 0 8px; color: #1769aa; text-decoration: none; }
+      .site-footer a:hover { text-decoration: underline; }
+      @media (max-width: 700px) {
+        body { padding: 18px 12px; }
+        .hero-panel { grid-template-columns: 1fr; gap: 22px; padding: 25px; }
+        .container { padding: 24px 20px; }
+      }
+      @media (max-width: 480px) {
+        .site-header { align-items: flex-start; }
+        .brand-mark { min-height: 58px; padding: 8px 12px; }
+        .brand-mark img { max-height: 42px; }
+        .welcome-banner { padding: 9px 12px; font-size: 12px; }
+        .hero-panel { padding: 22px 18px; border-radius: 18px; }
+        .field-grid { grid-template-columns: 1fr; }
+        .field-group.full-width { grid-column: auto; }
+        .action-buttons { flex-direction: column; }
+      }
     </style>
   </head>
   <body>
 
-    <div class="container">
-      <div style="text-align: center; margin-bottom: 15px;">
-        <img src="https://drive.google.com/thumbnail?id=1ojCplKaANjQBes_WLSJNSI2EMi7YAOzN&sz=w800" alt="GVSS Logo" style="max-height: 80px; width: auto; object-fit: contain;">
-      </div>
-
-      <div class="welcome-banner">Welcome user</div>
-
-      <h2>🔑 POS Key Generator</h2>
-      <hr style="border: 0; border-top: 1px solid #eee;">
-
-      <div style="text-align: center; margin: 20px auto; width: 100%; max-width: 500px;">
-        <video width="100%" controls autoplay muted loop playsinline style="border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid #ced4da; background: #000;">
-          <source src="https://raw.githubusercontent.com/GVSS4594/video/main/Billing_Stock(Inventory)%20GVSS%20Software%20WR.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </div>
-      
-      <label for="shopName">Shop / Establishment Name:</label>
-      <input type="text" id="shopName" placeholder="Enter Shop Name...">
-      
-      <label for="shopAddress">Shop / Establishment Address:</label>
-      <textarea id="shopAddress" placeholder="Enter Full Address..." rows="3"></textarea>
-      
-      <label for="machineType">Type of Machine:</label>
-      <select id="machineType">
-        <option value="Ultra">Ultra</option>
-        <option value="Standard">Standard</option>
-        <option value="Pro">Pro</option>
-      </select>
-      
-      <label for="areaPin">Area PIN:</label>
-      <input type="text" id="areaPin" placeholder="Enter Area PIN...">
-
-      <label for="paymentMethod">Payment Method:</label>
-      <select id="paymentMethod">
-        <option value="Online">Online Payment (Razorpay)</option>
-        <option value="Cash">Cash Payment</option>
-      </select>
-      
-      <label for="paymentAmount">Payment Amount (₹):</label>
-      <input type="number" id="paymentAmount" placeholder="Enter Total Amount (e.g. 10000)">
-      
-      <div style="<?= showInvoice ? '' : 'display:none;' ?>">
-        <label for="invoiceType">Invoice Type:</label>
-        <select id="invoiceType">
-          <option value="GST">GST Invoice (18% Inclusive)</option>
-          <option value="Non-GST" selected>Non-GST Invoice</option>
-        </select>
-      </div>
-
-      <label for="systemId">Client's System ID:</label>
-      <input type="text" id="systemId" placeholder="Enter System ID...">
-      
-      <label for="duration">License Duration:</label>
-      <select id="duration">
-        <option value="1">7 Days Demo (Instant)</option>
-        <option value="2">3 Months (Requires Approval)</option>
-        <option value="3">6 Months (Requires Approval)</option>
-        <option value="4" selected>12 Months (Requires Approval)</option>
-        <option value="5">Lifetime (Requires Approval)</option>
-      </select>
-      
-      <label>Capture User Photo (Mandatory):</label>
-      <div class="camera-box">
-        <video id="videoFeed" autoplay playsinline></video>
-        <img id="photoPreview" style="display:none;" />
-        
-        <div id="uploadFallback" class="upload-fallback">
-          <span>📁</span>
-          <p>Camera Not Found</p>
-          <small>Upload a photo instead.</small>
-          <input type="file" id="fileUpload" accept="image/*" onchange="handleFileUpload(event)">
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="brand-mark">
+          <img src="https://drive.google.com/thumbnail?id=1ojCplKaANjQBes_WLSJNSI2EMi7YAOzN&sz=w800" alt="GVSS Logo">
         </div>
-      </div>
-      
-      <button id="btnCapture" class="btn-cam" onclick="takePhoto()">📸 Capture Photo</button>
-      <button id="btnRetake" class="btn-cam" onclick="retakePhoto()" style="display:none; background:#dc3545;">🔄 Change Photo</button>
+        <div class="welcome-banner">Welcome user</div>
+      </header>
 
-      <div class="action-buttons">
-        <button id="submitBtn" class="btn-submit" onclick="requestLocationAndSubmit()">Submit Request</button>
-        <button class="btn-clear" onclick="resetForm()">🔄 Reset</button>
-      </div>
-      
-      <div id="resultBox" class="result-box">
-        <span id="resultTitle" style="font-weight: bold; font-size: 16px;">✅ LICENSE GENERATED</span>
-        <div id="licenseKey" class="key-display">-----</div>
-      </div>
+      <section class="hero-panel">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">GVSS BUSINESS SOFTWARE</p>
+          <h1>POS License Generator</h1>
+          <p>Request a license for your billing software. Choose your business type and complete the details below.</p>
+        </div>
+        <div class="video-panel">
+          <video controls autoplay muted loop playsinline>
+            <source src="https://raw.githubusercontent.com/GVSS4594/video/main/Billing_Stock(Inventory)%20GVSS%20Software%20WR.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
 
-      <div id="pendingBox" class="pending-box">
-        <span style="font-weight: bold; font-size: 16px;">⏳ APPROVAL REQUIRED</span>
-        <div id="pendingMessage" style="margin-top: 8px; font-size: 15px; line-height: 1.4;"></div>
-        <button id="checkStatusBtn" class="btn-check-status" onclick="checkCurrentRequestStatus()">🔄 Check If Approved</button>
-      </div>
-    </div>
+      <button type="button" class="generate-license-button" aria-controls="licenseGenerator" aria-expanded="false" onclick="document.getElementById('licenseGenerator').hidden = false; this.hidden = true; this.setAttribute('aria-expanded', 'true');">Generate License</button>
 
-    <div style="margin-top: 40px; padding: 20px 10px; text-align: center; font-size: 13px; color: #6c757d; border-top: 1px solid #e0e0e0;">
-      <p>&copy; 2026 Hotel POS License Manager. All Rights Reserved.</p>
-      <p>
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#contact" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Contact Us</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#delivery" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Delivery Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#refund" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Refund Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#privacy" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Privacy Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#terms" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Terms & Conditions</a>
-      </p>
+      <main id="licenseGenerator" class="container" hidden>
+        <div class="form-heading">
+          <h2>License request</h2>
+          <p>Enter your business and license details to continue.</p>
+        </div>
+
+        <section class="form-section">
+          <h3>Business details</h3>
+          <div class="field-grid">
+            <div class="field-group">
+              <label for="shopName">Shop / Establishment Name:</label>
+              <input type="text" id="shopName" placeholder="Enter Shop Name...">
+            </div>
+            <div class="field-group full-width">
+              <label for="shopAddress">Shop / Establishment Address:</label>
+              <textarea id="shopAddress" placeholder="Enter Full Address..." rows="3"></textarea>
+            </div>
+            <div class="field-group full-width">
+              <label for="machineType">Billing Software Type:</label>
+              <select id="machineType">
+                <option value="Apparel &amp; Clothing POS">Apparel &amp; Clothing POS</option>
+                <option value="Restaurant POS">Restaurant POS</option>
+                <option value="Retail POS">Retail POS</option>
+                <option value="Super Market">Super Market</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="areaPin">Area PIN:</label>
+              <input type="text" id="areaPin" placeholder="Enter Area PIN...">
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Payment details</h3>
+          <div class="field-grid">
+            <div class="field-group">
+              <label for="paymentMethod">Payment Method:</label>
+              <select id="paymentMethod">
+                <option value="Online">Online Payment (Razorpay)</option>
+                <option value="Cash">Cash Payment</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="paymentAmount">Payment Amount (₹):</label>
+              <input type="number" id="paymentAmount" placeholder="Enter Total Amount (e.g. 10000)">
+            </div>
+            <div class="field-group full-width">
+              <div style="<?= showInvoice ? '' : 'display:none;' ?>">
+                <label for="invoiceType">Invoice Type:</label>
+                <select id="invoiceType">
+                  <option value="GST">GST Invoice (18% Inclusive)</option>
+                  <option value="Non-GST" selected>Non-GST Invoice</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>License details</h3>
+          <div class="field-grid">
+            <div class="field-group">
+              <label for="systemId">Client's System ID:</label>
+              <input type="text" id="systemId" placeholder="Enter System ID...">
+            </div>
+            <div class="field-group">
+              <label for="duration">License Duration:</label>
+              <select id="duration">
+                <option value="1">7 Days Demo (Instant)</option>
+                <option value="2">3 Months (Requires Approval)</option>
+                <option value="3">6 Months (Requires Approval)</option>
+                <option value="4" selected>12 Months (Requires Approval)</option>
+                <option value="5">Lifetime (Requires Approval)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Identity verification</h3>
+          <label>Capture User Photo (Mandatory):</label>
+          <div class="camera-box">
+            <video id="videoFeed" autoplay playsinline></video>
+            <img id="photoPreview" style="display:none;" />
+
+            <div id="uploadFallback" class="upload-fallback">
+              <span>📁</span>
+              <p>Camera Not Found</p>
+              <small>Upload a photo instead.</small>
+              <input type="file" id="fileUpload" accept="image/*" onchange="handleFileUpload(event)">
+            </div>
+          </div>
+
+          <button id="btnCapture" class="btn-cam" onclick="takePhoto()">📸 Capture Photo</button>
+          <button id="btnRetake" class="btn-cam" onclick="retakePhoto()" style="display:none; background:#dc3545;">🔄 Change Photo</button>
+
+          <div class="action-buttons">
+            <button id="submitBtn" class="btn-submit" onclick="requestLocationAndSubmit()">Submit Request</button>
+            <button class="btn-clear" onclick="resetForm()">🔄 Reset</button>
+          </div>
+
+          <div id="resultBox" class="result-box">
+            <span id="resultTitle" style="font-weight: bold; font-size: 16px;">✅ LICENSE GENERATED</span>
+            <div id="licenseKey" class="key-display">-----</div>
+          </div>
+
+          <div id="pendingBox" class="pending-box">
+            <span style="font-weight: bold; font-size: 16px;">⏳ APPROVAL REQUIRED</span>
+            <div id="pendingMessage" style="margin-top: 8px; font-size: 15px; line-height: 1.4;"></div>
+            <button id="checkStatusBtn" class="btn-check-status" onclick="checkCurrentRequestStatus()">🔄 Check If Approved</button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 Hotel POS License Manager. All Rights Reserved.</p>
+        <p>
+          <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#contact" target="_top">Contact Us</a> |
+          <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#delivery" target="_top">Delivery Policy</a> |
+          <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#refund" target="_top">Refund Policy</a> |
+          <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#privacy" target="_top">Privacy Policy</a> |
+          <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#terms" target="_top">Terms & Conditions</a>
+        </p>
+      </footer>
     </div>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -409,7 +491,7 @@
       function resetForm() {
         document.getElementById('shopName').value = '';
         document.getElementById('shopAddress').value = '';
-        document.getElementById('machineType').value = 'Ultra';
+        document.getElementById('machineType').value = 'Apparel & Clothing POS';
         document.getElementById('areaPin').value = '';
         document.getElementById('paymentMethod').value = 'Online';
         document.getElementById('paymentAmount').value = '';
