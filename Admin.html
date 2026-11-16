@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - GVSS License & Analytics Manager</title>
+  <title>Admin Dashboard - License Manager</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
     .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
@@ -16,7 +16,7 @@
     .btn-success { background: #28a745; }
     .btn-danger { background: #dc3545; }
     .btn-bulk-delete { background-color: #dc3545; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
-    .btn-bulk-delete:hover { background-color: c82333; }
+    .btn-bulk-delete:hover { background-color: #c82333; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
     th { background-color: #f8f9fa; font-weight: 600; color: #495057; white-space: nowrap; }
@@ -27,88 +27,70 @@
     .key-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0275d8; letter-spacing: 0.5px; }
     .shop-details { font-size: 13px; line-height: 1.4; }
 
-    /* Visitor Analytics Calendar & Cards CSS */
-    .gvss-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .gvss-stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center; }
-    .gvss-stat-box h4 { margin: 0 0 6px 0; font-size: 13px; color: #64748b; text-transform: uppercase; }
-    .gvss-stat-box .stat-num { font-size: 28px; font-weight: 800; color: #0f172a; }
-    .gvss-two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 24px; margin-bottom: 30px; }
-    .gvss-panel-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; }
-    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-    .gvss-cal-day-name { font-size: 12px; font-weight: 700; color: #475569; padding: 4px 0; }
-    .gvss-cal-cell { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 54px; padding: 4px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.15s ease; }
+    /* Compact Visitor Analytics Widget Panel */
+    .gvss-analytics-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: center; }
+    .gvss-stat-mini { display: flex; justify-content: space-around; gap: 10px; text-align: center; }
+    .gvss-stat-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; flex: 1; }
+    .gvss-stat-card h5 { margin: 0 0 4px 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .gvss-stat-card .stat-num { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .gvss-cal-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
+    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+    .gvss-cal-day-name { font-size: 10px; font-weight: 700; color: #475569; }
+    .gvss-cal-cell { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; min-height: 32px; padding: 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
     .gvss-cal-cell:hover { border-color: #2563eb; background: #eff6ff; }
     .gvss-cal-cell.active-date { border: 2px solid #2563eb; background: #dbeafe; }
-    .gvss-cal-date-num { font-size: 12px; font-weight: 600; color: #334155; }
-    .gvss-cal-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; background: #dcfce7; color: #166534; }
-    .gvss-cal-badge.zero { background: #f1f5f9; color: #94a3b8; }
+    .gvss-cal-date-num { font-size: 10px; font-weight: 600; color: #334155; }
+    .gvss-cal-badge { font-size: 9px; font-weight: 700; color: #166534; }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h2>
-      🛡️ GVSS Admin & Visitor Analytics Dashboard
+      🛡️ License Admin Dashboard
       <a href="<?= ScriptApp.getService().getUrl() ?>" target="_top" style="font-size: 14px; color: #0275d8; text-decoration: none;">&larr; Back to Store</a>
     </h2>
 
-    <!-- Visitor Analytics Summary Cards -->
-    <div class="gvss-stats-grid">
-      <div class="gvss-stat-box">
-        <h4>Total Visitors (All-Time)</h4>
-        <div class="stat-num" id="adminTotalVisitors">0</div>
+    <!-- Compact Visitor Analytics & Calendar Window on Top -->
+    <div class="gvss-analytics-panel">
+      <div class="gvss-stat-mini">
+        <div class="gvss-stat-card">
+          <h5>Total Visitors</h5>
+          <div class="stat-num" id="adminTotalVisitors">0</div>
+        </div>
+        <div class="gvss-stat-card">
+          <h5>Today (<span id="adminTodayDateLabel">--</span>)</h5>
+          <div class="stat-num" id="adminTodayVisitors" style="color:#16a34a;">0</div>
+        </div>
       </div>
-      <div class="gvss-stat-box">
-        <h4>Today's Visitors (<span id="adminTodayDateLabel">--</span>)</h4>
-        <div class="stat-num" id="adminTodayVisitors" style="color:#16a34a;">0</div>
-      </div>
-      <div class="gvss-stat-box">
-        <h4>Check Specific Date</h4>
-        <input type="date" id="adminDatePicker" onchange="onDatePickerChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;width:90%;">
-        <div style="font-size:15px;font-weight:700;color:#2563eb;" id="selectedDateCountText">Select a date</div>
-      </div>
-    </div>
-
-    <div class="gvss-two-col">
-      <!-- Date-wise Visitor Calendar Section -->
-      <div class="gvss-panel-section">
-        <h3 style="margin-top:0;margin-bottom:12px;">📅 Date-wise Visitor Calendar</h3>
+      <div class="gvss-cal-box">
         <div class="gvss-cal-header">
-          <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">◀ Prev</button>
-          <strong id="calMonthYearLabel" style="font-size:15px;">Month Year</strong>
-          <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">Next ▶</button>
+          <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">◀</button>
+          <strong id="calMonthYearLabel" style="font-size:12px;">Month Year</strong>
+          <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">▶</button>
         </div>
         <div class="gvss-cal-grid" id="visitorCalendarGrid"></div>
       </div>
-
-      <!-- Quick Admin Key Generator Section -->
-      <div class="gvss-panel-section">
-        <h3 style="margin-top:0;margin-bottom:12px;">🔑 Quick Key Generator</h3>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">System ID</label>
-          <input type="text" id="manualSystemId" placeholder="Enter System ID..." style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Duration</label>
-          <select id="manualDuration" style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
-            <option value="1">7 Days Demo</option>
-            <option value="2">3 Months</option>
-            <option value="3">6 Months</option>
-            <option value="4" selected>12 Months</option>
-            <option value="5">Lifetime</option>
-          </select>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Location Note</label>
-          <input type="text" id="manualLocation" placeholder="e.g. Admin Generated" value="Admin Panel" style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
-        </div>
-        <button class="btn btn-success" onclick="generateManualKey()" style="width:100%;padding:10px;">Generate & Approve Key</button>
-        <div id="manualResult" class="key-text" style="margin-top:12px;padding:10px;background:#fff;border-radius:6px;border:1px dashed #28a745;display:none;text-align:center;"></div>
-      </div>
     </div>
 
-    <!-- License Requests Table Section -->
+    <!-- Original Quick Manual Key Generator Layout -->
+    <div class="manual-box">
+      <strong>Quick Key Generator:</strong>
+      <input type="text" id="manualSystemId" placeholder="Enter System ID...">
+      <select id="manualDuration">
+        <option value="1">7 Days Demo</option>
+        <option value="2">3 Months</option>
+        <option value="3">6 Months</option>
+        <option value="4" selected>12 Months</option>
+        <option value="5">Lifetime</option>
+      </select>
+      <input type="text" id="manualLocation" placeholder="Location note..." value="Admin Panel">
+      <button class="btn btn-success" onclick="generateManualKey()">Generate & Approve</button>
+      <div id="manualResult" class="key-text" style="display:none; width:100%;"></div>
+    </div>
+
+    <!-- Original Customer License Requests Table Layout -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
       <h3 style="margin: 0;">📋 Customer License Requests</h3>
       <button class="btn btn-bulk-delete" onclick="deleteSelectedRequests()">Delete Selected</button>
@@ -156,26 +138,7 @@
       document.getElementById("adminTotalVisitors").textContent = data.totalVisitors || 0;
       document.getElementById("adminTodayVisitors").textContent = data.todayVisitors || 0;
       document.getElementById("adminTodayDateLabel").textContent = data.todayDate || "";
-
-      if (data.todayDate) {
-        document.getElementById("adminDatePicker").value = data.todayDate;
-        onDatePickerChange(data.todayDate);
-      }
       renderVisitorCalendar(currentCalYear, currentCalMonth);
-    }
-
-    function onDatePickerChange(dateStr) {
-      if (!dateStr) return;
-      const count = Number(visitorDailyCounts[dateStr]) || 0;
-      document.getElementById("selectedDateCountText").textContent =
-        dateStr + ": " + count + (count === 1 ? " visitor" : " visitors");
-
-      const parts = dateStr.split("-");
-      if (parts.length === 3) {
-        currentCalYear = parseInt(parts[0], 10);
-        currentCalMonth = parseInt(parts[1], 10) - 1;
-        renderVisitorCalendar(currentCalYear, currentCalMonth, dateStr);
-      }
     }
 
     function changeCalendarMonth(offset) {
@@ -187,20 +150,17 @@
         currentCalMonth = 0;
         currentCalYear++;
       }
-      renderVisitorCalendar(currentCalYear, currentCalMonth, document.getElementById("adminDatePicker").value);
+      renderVisitorCalendar(currentCalYear, currentCalMonth);
     }
 
-    function renderVisitorCalendar(year, month, selectedDateStr) {
+    function renderVisitorCalendar(year, month) {
       const grid = document.getElementById("visitorCalendarGrid");
       grid.innerHTML = "";
 
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById("calMonthYearLabel").textContent = monthNames[month] + " " + year;
 
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
       dayNames.forEach(function(d) {
         const el = document.createElement("div");
         el.className = "gvss-cal-day-name";
@@ -222,19 +182,16 @@
         const count = Number(visitorDailyCounts[dateKey]) || 0;
 
         const cell = document.createElement("div");
-        cell.className = "gvss-cal-cell" + (selectedDateStr === dateKey ? " active-date" : "");
-        cell.onclick = function() {
-          document.getElementById("adminDatePicker").value = dateKey;
-          onDatePickerChange(dateKey);
-        };
+        cell.className = "gvss-cal-cell";
+        cell.title = dateKey + ": " + count + " visitors";
 
         const dateNum = document.createElement("div");
         dateNum.className = "gvss-cal-date-num";
         dateNum.textContent = day;
 
         const badge = document.createElement("div");
-        badge.className = "gvss-cal-badge" + (count === 0 ? " zero" : "");
-        badge.textContent = count + " 👤";
+        badge.className = "gvss-cal-badge";
+        badge.textContent = count > 0 ? count : "";
 
         cell.appendChild(dateNum);
         cell.appendChild(badge);

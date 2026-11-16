@@ -151,6 +151,7 @@
         silentRecordVisitor();
       };
 
+      // Automatically capture visitor location and record visit on page load
       function silentRecordVisitor() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(

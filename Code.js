@@ -23,7 +23,7 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// --- VISITOR & ANALYTICS TRACKING BACKEND ---
+// --- VISITOR & LOCATION ANALYTICS BACKEND ---
 function recordWebsiteVisit(clientLocation) {
   const lock = LockService.getScriptLock();
   try {
@@ -42,7 +42,6 @@ function recordWebsiteVisit(clientLocation) {
     dailyMap[todayStr] = (Number(dailyMap[todayStr]) || 0) + 1;
     props.setProperty("VISITOR_DAILY_MAP", JSON.stringify(dailyMap));
 
-    // Log visit details with location to Sheet if Visitors tab exists or append
     syncVisitToSheet_(SPREADSHEET_ID, todayStr, dailyMap[todayStr], clientLocation || "Unknown Location", timestamp);
 
     return buildVisitorStatsResponse_(dailyMap, todayStr);
@@ -87,7 +86,7 @@ function syncVisitToSheet_(sheetId, dateStr, count, location, timestamp) {
     let sheet = ss.getSheetByName("Visitors");
     if (!sheet) {
       sheet = ss.insertSheet("Visitors");
-      sheet.appendRow(["Date", "Visitor Count", "Location", "Last Visited Timestamp"]);
+      sheet.appendRow(["Date", "Visitor Count", "Visitor Location", "Timestamp"]);
     }
     sheet.appendRow([dateStr, count, location, timestamp]);
   } catch (e) {

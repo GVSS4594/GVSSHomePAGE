@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - GVSS License & Analytics Manager</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    h2 { color: #0275d8; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .manual-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    .manual-box input, .manual-box select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; outline: none; }
+    .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; color: white; }
+    .btn-primary { background: #0275d8; }
+    .btn-success { background: #28a745; }
+    .btn-danger { background: #dc3545; }
+    .btn-bulk-delete { background-color: #dc3545; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
+    .btn-bulk-delete:hover { background-color: c82333; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
+    th { background-color: #f8f9fa; font-weight: 600; color: #495057; white-space: nowrap; }
+    tr:hover { background-color: #f1f3f5; }
+    .badge { padding: 5px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+    .badge-pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .badge-approved { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .key-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0275d8; letter-spacing: 0.5px; }
+    .shop-details { font-size: 13px; line-height: 1.4; }
+
+    /* Visitor Analytics Calendar & Cards CSS */
+    .gvss-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .gvss-stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center; }
+    .gvss-stat-box h4 { margin: 0 0 6px 0; font-size: 13px; color: #64748b; text-transform: uppercase; }
+    .gvss-stat-box .stat-num { font-size: 28px; font-weight: 800; color: #0f172a; }
+    .gvss-two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 24px; margin-bottom: 30px; }
+    .gvss-panel-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; }
+    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+    .gvss-cal-day-name { font-size: 12px; font-weight: 700; color: #475569; padding: 4px 0; }
+    .gvss-cal-cell { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 54px; padding: 4px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.15s ease; }
+    .gvss-cal-cell:hover { border-color: #2563eb; background: #eff6ff; }
+    .gvss-cal-cell.active-date { border: 2px solid #2563eb; background: #dbeafe; }
+    .gvss-cal-date-num { font-size: 12px; font-weight: 600; color: #334155; }
+    .gvss-cal-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; background: #dcfce7; color: #166534; }
+    .gvss-cal-badge.zero { background: #f1f5f9; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>
+      🛡️ GVSS Admin & Visitor Analytics Dashboard
+      <a href="<?= ScriptApp.getService().getUrl() ?>" target="_top" style="font-size: 14px; color: #0275d8; text-decoration: none;">&larr; Back to Store</a>
+    </h2>
+
+    <!-- Visitor Analytics Summary Cards -->
+    <div class="gvss-stats-grid">
+      <div class="gvss-stat-box">
+        <h4>Total Visitors (All-Time)</h4>
+        <div class="stat-num" id="adminTotalVisitors">0</div>
+      </div>
+      <div class="gvss-stat-box">
+        <h4>Today's Visitors (<span id="adminTodayDateLabel">--</span>)</h4>
+        <div class="stat-num" id="adminTodayVisitors" style="color:#16a34a;">0</div>
+      </div>
+      <div class="gvss-stat-box">
+        <h4>Check Specific Date</h4>
+        <input type="date" id="adminDatePicker" onchange="onDatePickerChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;width:90%;">
+        <div style="font-size:15px;font-weight:700;color:#2563eb;" id="selectedDateCountText">Select a date</div>
+      </div>
+    </div>
+
+    <div class="gvss-two-col">
+      <!-- Date-wise Visitor Calendar Section -->
+      <div class="gvss-panel-section">
+        <h3 style="margin-top:0;margin-bottom:12px;">📅 Date-wise Visitor Calendar</h3>
+        <div class="gvss-cal-header">
+          <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">◀ Prev</button>
+          <strong id="calMonthYearLabel" style="font-size:15px;">Month Year</strong>
+          <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">Next ▶</button>
+        </div>
+        <div class="gvss-cal-grid" id="visitorCalendarGrid"></div>
+      </div>
+
+      <!-- Quick Admin Key Generator Section -->
+      <div class="gvss-panel-section">
+        <h3 style="margin-top:0;margin-bottom:12px;">🔑 Quick Key Generator</h3>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">System ID</label>
+          <input type="text" id="manualSystemId" placeholder="Enter System ID..." style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Duration</label>
+          <select id="manualDuration" style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
+            <option value="1">7 Days Demo</option>
+            <option value="2">3 Months</option>
+            <option value="3">6 Months</option>
+            <option value="4" selected>12 Months</option>
+            <option value="5">Lifetime</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Location Note</label>
+          <input type="text" id="manualLocation" placeholder="e.g. Admin Generated" value="Admin Panel" style="width:100%;padding:9px;border:1px solid #ced4da;border-radius:6px;box-sizing:border-box;">
+        </div>
+        <button class="btn btn-success" onclick="generateManualKey()" style="width:100%;padding:10px;">Generate & Approve Key</button>
+        <div id="manualResult" class="key-text" style="margin-top:12px;padding:10px;background:#fff;border-radius:6px;border:1px dashed #28a745;display:none;text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- License Requests Table Section -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h3 style="margin: 0;">📋 Customer License Requests</h3>
+      <button class="btn btn-bulk-delete" onclick="deleteSelectedRequests()">Delete Selected</button>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+            <th>Request ID</th>
+            <th>Shop Details</th>
+            <th>System ID & Location</th>
+            <th>Duration & Machine</th>
+            <th>Status & Key</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="requestTableBody">
+          <tr><td colspan="7" style="text-align: center; color: #777;">Loading requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let visitorDailyCounts = {};
+    let currentCalYear = new Date().getFullYear();
+    let currentCalMonth = new Date().getMonth();
+
+    window.onload = function() {
+      loadRequests();
+      loadVisitorStats();
+    };
+
+    function loadVisitorStats() {
+      google.script.run
+        .withSuccessHandler(updateVisitorUI)
+        .getAdminVisitorStats();
+    }
+
+    function updateVisitorUI(data) {
+      if (!data) return;
+      visitorDailyCounts = data.dailyCounts || {};
+      document.getElementById("adminTotalVisitors").textContent = data.totalVisitors || 0;
+      document.getElementById("adminTodayVisitors").textContent = data.todayVisitors || 0;
+      document.getElementById("adminTodayDateLabel").textContent = data.todayDate || "";
+
+      if (data.todayDate) {
+        document.getElementById("adminDatePicker").value = data.todayDate;
+        onDatePickerChange(data.todayDate);
+      }
+      renderVisitorCalendar(currentCalYear, currentCalMonth);
+    }
+
+    function onDatePickerChange(dateStr) {
+      if (!dateStr) return;
+      const count = Number(visitorDailyCounts[dateStr]) || 0;
+      document.getElementById("selectedDateCountText").textContent =
+        dateStr + ": " + count + (count === 1 ? " visitor" : " visitors");
+
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        currentCalYear = parseInt(parts[0], 10);
+        currentCalMonth = parseInt(parts[1], 10) - 1;
+        renderVisitorCalendar(currentCalYear, currentCalMonth, dateStr);
+      }
+    }
+
+    function changeCalendarMonth(offset) {
+      currentCalMonth += offset;
+      if (currentCalMonth < 0) {
+        currentCalMonth = 11;
+        currentCalYear--;
+      } else if (currentCalMonth > 11) {
+        currentCalMonth = 0;
+        currentCalYear++;
+      }
+      renderVisitorCalendar(currentCalYear, currentCalMonth, document.getElementById("adminDatePicker").value);
+    }
+
+    function renderVisitorCalendar(year, month, selectedDateStr) {
+      const grid = document.getElementById("visitorCalendarGrid");
+      grid.innerHTML = "";
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      document.getElementById("calMonthYearLabel").textContent = monthNames[month] + " " + year;
+
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      dayNames.forEach(function(d) {
+        const el = document.createElement("div");
+        el.className = "gvss-cal-day-name";
+        el.textContent = d;
+        grid.appendChild(el);
+      });
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        grid.appendChild(document.createElement("div"));
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const mm = String(month + 1).padStart(2, "0");
+        const dd = String(day).padStart(2, "0");
+        const dateKey = year + "-" + mm + "-" + dd;
+        const count = Number(visitorDailyCounts[dateKey]) || 0;
+
+        const cell = document.createElement("div");
+        cell.className = "gvss-cal-cell" + (selectedDateStr === dateKey ? " active-date" : "");
+        cell.onclick = function() {
+          document.getElementById("adminDatePicker").value = dateKey;
+          onDatePickerChange(dateKey);
+        };
+
+        const dateNum = document.createElement("div");
+        dateNum.className = "gvss-cal-date-num";
+        dateNum.textContent = day;
+
+        const badge = document.createElement("div");
+        badge.className = "gvss-cal-badge" + (count === 0 ? " zero" : "");
+        badge.textContent = count + " 👤";
+
+        cell.appendChild(dateNum);
+        cell.appendChild(badge);
+        grid.appendChild(cell);
+      }
+    }
+
+    function loadRequests() {
+      google.script.run
+        .withSuccessHandler(function(requests) {
+          var tbody = document.getElementById('requestTableBody');
+          tbody.innerHTML = "";
+          
+          if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #777;">No requests found.</td></tr>';
+            return;
+          }
+          
+          requests.forEach(function(req) {
+            var tr = document.createElement('tr');
+            
+            var statusBadge = req.status === 'APPROVED' 
+              ? '<span class="badge badge-approved">APPROVED</span>' 
+              : '<span class="badge badge-pending">PENDING</span>';
+              
+            var keyContent = req.key ? '<span class="key-text">' + req.key + '</span>' : '<em>Pending Key</em>';
+            
+            var actionBtn = req.status !== 'APPROVED'
+              ? '<button class="btn btn-success" onclick="approveRequest(' + req.rowIndex + ', \'' + req.systemId + '\', \'' + req.duration + '\')">Approve</button>'
+              : '<button class="btn btn-primary" onclick="downloadInvoice(\'' + req.requestId + '\')">Invoice PDF</button>';
+
+            var photoHtml = req.photoUrl !== 'No Photo' && req.photoUrl !== 'Error Saving Photo' 
+              ? '<br><a href="' + req.photoUrl + '" target="_blank" style="font-size: 11px; color: #0275d8;">📸 View Photo</a>' 
+              : '';
+
+            tr.innerHTML = `
+              <td><input type="checkbox" class="reqCheckbox" value="${req.requestId}"></td>
+              <td><strong>${req.requestId}</strong><br><small style="color: #666;">${req.timestamp}</small></td>
+              <td>
+                <div class="shop-details">
+                  <strong>${req.shopName}</strong><br>
+                  ${req.shopAddress}<br>
+                  PIN: ${req.areaPin}
+                  ${photoHtml}
+                </div>
+              </td>
+              <td>
+                <code style="background:#e9ecef; padding:2px 4px; border-radius:4px;">${req.systemId}</code><br>
+                <small style="color: #555;">📍 ${req.location}</small>
+              </td>
+              <td>
+                <strong>${req.duration}</strong><br>
+                <small style="color: #666;">Machine: ${req.machineType}</small><br>
+                <small style="color: #666;">Pay: ${req.paymentMethod} (₹${req.paymentAmount})</small>
+              </td>
+              <td>${statusBadge}<br>${keyContent}</td>
+              <td>${actionBtn}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        })
+        .withFailureHandler(function(err) {
+          alert("Failed to load requests: " + err.message);
+        })
+        .getAllRequests();
+    }
+
+    function approveRequest(rowIndex, systemId, durationCode) {
+      if (!confirm("Are you sure you want to approve and generate a key for System ID: " + systemId + "?")) return;
+      
+      google.script.run
+        .withSuccessHandler(function(key) {
+          alert("Key generated successfully: " + key);
+          loadRequests();
+        })
+        .withFailureHandler(function(err) {
+          alert("Approval failed: " + err.message);
+        })
+        .approveFromAdminPanel(rowIndex, systemId, durationCode);
+    }
+
+    function generateManualKey() {
+      var systemId = document.getElementById('manualSystemId').value.trim();
+      var durationChoice = document.getElementById('manualDuration').value;
+      var locationStr = document.getElementById('manualLocation').value.trim();
+      
+      if (!systemId) {
+        alert("Please enter a System ID.");
+        return;
+      }
+      
+      google.script.run
+        .withSuccessHandler(function(key) {
+          var resBox = document.getElementById('manualResult');
+          resBox.style.display = "block";
+          resBox.innerText = "Generated Key: " + key;
+          loadRequests();
+        })
+        .withFailureHandler(function(err) {
+          alert("Key generation failed: " + err.message);
+        })
+        .adminGenerateKey(systemId, durationChoice, locationStr);
+    }
+
+    function toggleSelectAll(source) {
+      var checkboxes = document.querySelectorAll('.reqCheckbox');
+      checkboxes.forEach(function(cb) { cb.checked = source.checked; });
+    }
+
+    function deleteSelectedRequests() {
+      var checkboxes = document.querySelectorAll('.reqCheckbox:checked');
+      if (checkboxes.length === 0) {
+        alert("Please select at least one request to delete.");
+        return;
+      }
+      
+      if (!confirm("Are you sure you want to delete " + checkboxes.length + " selected request(s)?")) return;
+      
+      var idsToDelete = [];
+      checkboxes.forEach(function(cb) { idsToDelete.push(cb.value); });
+      
+      google.script.run
+        .withSuccessHandler(function() {
+          alert("Selected requests deleted successfully.");
+          loadRequests();
+        })
+        .withFailureHandler(function(err) {
+          alert("Deletion failed: " + err.message);
+        })
+        .deleteMultipleRequests(idsToDelete);
+    }
+
+    function downloadInvoice(requestId) {
+      google.script.run
+        .withSuccessHandler(function(base64Data) {
+          if (!base64Data) {
+            alert("Invoice could not be generated.");
+            return;
+          }
+          var byteCharacters = atob(base64Data);
+          var byteNumbers = new Array(byteCharacters.length);
+          for (var i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          var byteArray = new Uint8Array(byteNumbers);
+          var blob = new Blob([byteArray], { type: 'application/pdf' });
+          var link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = requestId + "_Invoice.pdf";
+          link.click();
+        })
+        .withFailureHandler(function(err) {
+          alert("Failed to download invoice: " + err.message);
+        })
+        .generateInvoicePDFBase64(requestId);
+    }
+  </script>
+</body>
+</html>
