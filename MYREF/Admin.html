@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - License Manager</title>
+  <title>Admin Dashboard - POS Manager</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
     .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
@@ -27,57 +27,45 @@
     .key-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0275d8; letter-spacing: 0.5px; }
     .shop-details { font-size: 13px; line-height: 1.4; }
 
-    /* Compact Visitor Analytics Widget Panel */
-    .gvss-analytics-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: center; }
-    .gvss-stat-mini { display: flex; justify-content: space-around; gap: 10px; text-align: center; }
-    .gvss-stat-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; flex: 1; }
-    .gvss-stat-card h5 { margin: 0 0 4px 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
-    .gvss-stat-card .stat-num { font-size: 22px; font-weight: 800; color: #0f172a; }
-    .gvss-cal-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
-    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
-    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
-    .gvss-cal-day-name { font-size: 10px; font-weight: 700; color: #475569; }
-    .gvss-cal-cell { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; min-height: 32px; padding: 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+    /* Popup Modal Styles for Visitor Calendar */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: white; padding: 25px; border-radius: 10px; width: 400px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 15px; }
+    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+    .gvss-cal-day-name { font-size: 12px; font-weight: 700; color: #475569; }
+    .gvss-cal-cell { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 40px; padding: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
     .gvss-cal-cell:hover { border-color: #2563eb; background: #eff6ff; }
-    .gvss-cal-cell.active-date { border: 2px solid #2563eb; background: #dbeafe; }
-    .gvss-cal-date-num { font-size: 10px; font-weight: 600; color: #334155; }
-    .gvss-cal-badge { font-size: 9px; font-weight: 700; color: #166534; }
+    .gvss-cal-date-num { font-size: 11px; font-weight: 600; color: #334155; }
+    .gvss-cal-badge { font-size: 10px; font-weight: 700; color: #166534; }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h2>
-      🛡️ License Admin Dashboard
-      <a href="<?= ScriptApp.getService().getUrl() ?>" target="_top" style="font-size: 14px; color: #0275d8; text-decoration: none;">&larr; Back to Store</a>
+      🛡️ License Admin Dashboard <span id="envIndicator" style="font-size: 12px; background: #e9ecef; padding: 4px 8px; border-radius: 4px; color: #495057;"></span>
+      <a href="<?= ScriptApp.getService().getUrl() ?>?env=<?= env ?>" target="_top" style="font-size: 14px; color: #6c757d; text-decoration: none;">&larr; Back to Store</a>
     </h2>
 
-    <!-- Compact Visitor Analytics & Calendar Window on Top -->
-    <div class="gvss-analytics-panel">
-      <div class="gvss-stat-mini">
-        <div class="gvss-stat-card">
-          <h5>Total Visitors</h5>
-          <div class="stat-num" id="adminTotalVisitors">0</div>
-        </div>
-        <div class="gvss-stat-card">
-          <h5>Today (<span id="adminTodayDateLabel">--</span>)</h5>
-          <div class="stat-num" id="adminTodayVisitors" style="color:#16a34a;">0</div>
-        </div>
+    <!-- Original KeyGen Admin Controls (Live/Staging Switch & Refresh) -->
+    <div style="background: #e8f5e9; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <strong>Environment:</strong> <span id="currentEnvText" style="color: #2e7d32; font-weight: bold; text-transform: uppercase;"><?= env ?></span>
+        <button onclick="switchEnvironment()" class="btn" style="background: #2e7d32; padding: 6px 12px; margin-left: 10px; font-size: 12px;">Switch to <?= env === "STAGING" ? "LIVE" : "STAGING" ?></button>
       </div>
-      <div class="gvss-cal-box">
-        <div class="gvss-cal-header">
-          <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">◀</button>
-          <strong id="calMonthYearLabel" style="font-size:12px;">Month Year</strong>
-          <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">▶</button>
-        </div>
-        <div class="gvss-cal-grid" id="visitorCalendarGrid"></div>
+      <div>
+        <button onclick="loadRequests()" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh Data</button>
       </div>
     </div>
 
-    <!-- Original Quick Manual Key Generator Layout -->
+    <!-- Original Quick Manual Key Generator Box -->
     <div class="manual-box">
       <strong>Quick Key Generator:</strong>
-      <input type="text" id="manualSystemId" placeholder="Enter System ID...">
+      <input type="text" id="manualSystemId" placeholder="System ID...">
+      <select id="manualMachineType">
+        <option value="Desktop">Desktop</option>
+        <option value="Laptop">Laptop</option>
+      </select>
       <select id="manualDuration">
         <option value="1">7 Days Demo</option>
         <option value="2">3 Months</option>
@@ -86,16 +74,21 @@
         <option value="5">Lifetime</option>
       </select>
       <input type="text" id="manualLocation" placeholder="Location note..." value="Admin Panel">
-      <button class="btn btn-success" onclick="generateManualKey()">Generate & Approve</button>
-      <div id="manualResult" class="key-text" style="display:none; width:100%;"></div>
+      <button class="btn btn-success" onclick="manualGenerate()">Generate & Approve</button>
+      <div id="manualResult" class="key-text" style="display:none; width: 100%;"></div>
     </div>
 
-    <!-- Original Customer License Requests Table Layout -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <!-- Action Row with Delete Selected, Today's Visitors, Total Visitors, and Popup Link -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
       <h3 style="margin: 0;">📋 Customer License Requests</h3>
-      <button class="btn btn-bulk-delete" onclick="deleteSelectedRequests()">Delete Selected</button>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button class="btn" style="background: #0284c7; color: white;" id="todayVisitorsBtn">Today's Visitors: 0</button>
+        <button class="btn" style="background: #0d9488; color: white;" id="totalVisitorsBtn" onclick="openVisitorModal()">Total Visitors: 0 (📅 View Calendar)</button>
+        <button class="btn-bulk-delete" onclick="deleteSelectedRequests()">Delete Selected</button>
+      </div>
     </div>
 
+    <!-- Customer Requests Table -->
     <div style="overflow-x: auto;">
       <table>
         <thead>
@@ -116,15 +109,39 @@
     </div>
   </div>
 
+  <!-- Popup Calendar Modal for Visitors Count -->
+  <div class="modal-overlay" id="visitorModalOverlay">
+    <div class="modal-content">
+      <div class="gvss-cal-header">
+        <strong>📅 Visitor Analytics Calendar</strong>
+        <button onclick="closeVisitorModal()" class="btn btn-danger" style="padding: 2px 8px; font-size: 11px;">✕</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:4px 8px; font-size:11px;">◀ Prev</button>
+        <strong id="calMonthYearLabel" style="font-size: 13px;">Month Year</strong>
+        <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:4px 8px; font-size:11px;">Next ▶</button>
+      </div>
+      <div class="gvss-cal-grid" id="visitorCalendarGrid"></div>
+    </div>
+  </div>
+
   <script>
+    var currentEnv = "<?= env ?>";
     let visitorDailyCounts = {};
     let currentCalYear = new Date().getFullYear();
     let currentCalMonth = new Date().getMonth();
 
     window.onload = function() {
+      document.getElementById('envIndicator').innerText = "[" + currentEnv + "]";
       loadRequests();
       loadVisitorStats();
     };
+
+    function switchEnvironment() {
+      var newEnv = currentEnv === "STAGING" ? "LIVE" : "STAGING";
+      var url = ScriptApp.getService().getUrl() + "?mode=admin&env=" + newEnv;
+      window.top.location.href = url;
+    }
 
     function loadVisitorStats() {
       google.script.run
@@ -135,10 +152,18 @@
     function updateVisitorUI(data) {
       if (!data) return;
       visitorDailyCounts = data.dailyCounts || {};
-      document.getElementById("adminTotalVisitors").textContent = data.totalVisitors || 0;
-      document.getElementById("adminTodayVisitors").textContent = data.todayVisitors || 0;
-      document.getElementById("adminTodayDateLabel").textContent = data.todayDate || "";
+      document.getElementById("totalVisitorsBtn").textContent = "Total Visitors: " + (data.totalVisitors || 0) + " (📅 View Calendar)";
+      document.getElementById("todayVisitorsBtn").textContent = "Today's Visitors (" + (data.todayDate || "--") + "): " + (data.todayVisitors || 0);
       renderVisitorCalendar(currentCalYear, currentCalMonth);
+    }
+
+    function openVisitorModal() {
+      document.getElementById("visitorModalOverlay").style.display = "flex";
+      renderVisitorCalendar(currentCalYear, currentCalMonth);
+    }
+
+    function closeVisitorModal() {
+      document.getElementById("visitorModalOverlay").style.display = "none";
     }
 
     function changeCalendarMonth(offset) {
@@ -160,7 +185,7 @@
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById("calMonthYearLabel").textContent = monthNames[month] + " " + year;
 
-      const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
+      const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
       dayNames.forEach(function(d) {
         const el = document.createElement("div");
         el.className = "gvss-cal-day-name";
@@ -191,7 +216,7 @@
 
         const badge = document.createElement("div");
         badge.className = "gvss-cal-badge";
-        badge.textContent = count > 0 ? count : "";
+        badge.textContent = count > 0 ? count + " 👤" : "-";
 
         cell.appendChild(dateNum);
         cell.appendChild(badge);
@@ -220,7 +245,7 @@
             var keyContent = req.key ? '<span class="key-text">' + req.key + '</span>' : '<em>Pending Key</em>';
             
             var actionBtn = req.status !== 'APPROVED'
-              ? '<button class="btn btn-success" onclick="approveRequest(' + req.rowIndex + ', \'' + req.systemId + '\', \'' + req.duration + '\')">Approve</button>'
+              ? '<button class="btn btn-success" onclick="approveRequest(' + req.rowIndex + ', \'' + req.systemId + '\', \'' + req.duration + '\', \'' + req.machineType + '\')">Approve</button>'
               : '<button class="btn btn-primary" onclick="downloadInvoice(\'' + req.requestId + '\')">Invoice PDF</button>';
 
             var photoHtml = req.photoUrl !== 'No Photo' && req.photoUrl !== 'Error Saving Photo' 
@@ -256,10 +281,10 @@
         .withFailureHandler(function(err) {
           alert("Failed to load requests: " + err.message);
         })
-        .getAllRequests();
+        .getAllRequests(currentEnv);
     }
 
-    function approveRequest(rowIndex, systemId, durationCode) {
+    function approveRequest(rowIndex, systemId, durationCode, machineType) {
       if (!confirm("Are you sure you want to approve and generate a key for System ID: " + systemId + "?")) return;
       
       google.script.run
@@ -270,11 +295,12 @@
         .withFailureHandler(function(err) {
           alert("Approval failed: " + err.message);
         })
-        .approveFromAdminPanel(rowIndex, systemId, durationCode);
+        .approveFromAdminPanel(rowIndex, systemId, durationCode, machineType, currentEnv);
     }
 
-    function generateManualKey() {
+    function manualGenerate() {
       var systemId = document.getElementById('manualSystemId').value.trim();
+      var machineType = document.getElementById('manualMachineType').value;
       var durationChoice = document.getElementById('manualDuration').value;
       var locationStr = document.getElementById('manualLocation').value.trim();
       
@@ -293,7 +319,7 @@
         .withFailureHandler(function(err) {
           alert("Key generation failed: " + err.message);
         })
-        .adminGenerateKey(systemId, durationChoice, locationStr);
+        .adminGenerateKey(systemId, durationChoice, locationStr, machineType, "Standalone Application (Desktop)", currentEnv);
     }
 
     function toggleSelectAll(source) {
@@ -321,7 +347,7 @@
         .withFailureHandler(function(err) {
           alert("Deletion failed: " + err.message);
         })
-        .deleteMultipleRequests(idsToDelete);
+        .deleteMultipleRequests(idsToDelete, currentEnv);
     }
 
     function downloadInvoice(requestId) {
@@ -346,7 +372,7 @@
         .withFailureHandler(function(err) {
           alert("Failed to download invoice: " + err.message);
         })
-        .generateInvoicePDFBase64(requestId);
+        .generateInvoicePDFBase64(requestId, currentEnv);
     }
   </script>
 </body>

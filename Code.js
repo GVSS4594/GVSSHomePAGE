@@ -1,43 +1,11 @@
 var SPREADSHEET_ID = "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os"; 
 var SHEET_NAME = "Sheet1"; 
 
-// --- ENVIRONMENT CONFIGURATIONS ---
-var ENV_CONFIG = {
-  "STAGING": {
-    SPREADSHEET_ID: "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os",
-    SHEET_NAME: "Sheet_Staging",
-    DRIVE_FOLDER: "POS_Activations_Staging",
-    SUPABASE_URL: "https://pcawzzubhylrplrrgpfv.supabase.co",
-    SUPABASE_KEY: "YOUR_SUPABASE_SECRET_KEY", 
-    RAZORPAY_KEY_ID: "YOUR_TEST_KEY_ID",
-    RAZORPAY_KEY_SECRET: "YOUR_TEST_KEY_SECRET"
-  },
-  "LIVE": {
-    SPREADSHEET_ID: "1ZOrwkS-_8-ngI3tvLqJBo3VOOg7Hp3csemw3boA15os",
-    SHEET_NAME: "Sheet1",
-    DRIVE_FOLDER: "POS_Activations",
-    SUPABASE_URL: "https://xwlzckxsspgyvgszueht.supabase.co",
-    SUPABASE_KEY: "sb_publishable_USFK0tj1qga8bDoNxdx06w_-uXLDQ5K",
-    RAZORPAY_KEY_ID: "YOUR_KEY_ID",
-    RAZORPAY_KEY_SECRET: "YOUR_KEY_SECRET"
-  }
-};
-
-function getConfig(env) {
-  var requestedEnv = (env && String(env).toUpperCase() === "STAGING") ? "STAGING" : "LIVE";
-  return ENV_CONFIG[requestedEnv];
-}
-
-function getInvoiceVisibility() {
-  var props = PropertiesService.getScriptProperties();
-  var val = props.getProperty('SHOW_INVOICE');
-  return val !== 'false'; 
-}
+// --- RAZORPAY CREDENTIALS ---
+var RAZORPAY_KEY_ID = "YOUR_KEY_ID"; 
+var RAZORPAY_KEY_SECRET = "YOUR_KEY_SECRET";
 
 function doGet(e) {
-  var currentEnv = (e && e.parameter && e.parameter.env) ? String(e.parameter.env).toUpperCase() : "LIVE";
-  var currentAppMode = (e && e.parameter && e.parameter.app) ? String(e.parameter.app).toLowerCase() : "desktop";
-
   if (e && e.parameter && e.parameter.page === "policies") {
     return HtmlService.createTemplateFromFile('Policies').evaluate()
         .setTitle('Store Policies & Legal Terms')
@@ -45,27 +13,18 @@ function doGet(e) {
   }
 
   if (e && e.parameter && e.parameter.mode === "admin") {
-    var adminTemplate = HtmlService.createTemplateFromFile('Admin');
-    adminTemplate.showInvoice = getInvoiceVisibility();
-    adminTemplate.env = currentEnv;
-    return adminTemplate.evaluate()
+    return HtmlService.createTemplateFromFile('Admin').evaluate()
         .setTitle('Admin Dashboard - License Manager')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-  var indexTemplate = HtmlService.createTemplateFromFile('Index');
-  indexTemplate.showInvoice = getInvoiceVisibility();
-  indexTemplate.env = currentEnv;
-  indexTemplate.appMode = currentAppMode;
-  
-  return indexTemplate.evaluate()
+  return HtmlService.createTemplateFromFile('Index').evaluate()
       .setTitle('Hotel POS License Generator')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // --- VISITOR & LOCATION ANALYTICS BACKEND ---
-function recordWebsiteVisit(clientLocation, env) {
+function recordWebsiteVisit(clientLocation) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(5000);
@@ -83,8 +42,7 @@ function recordWebsiteVisit(clientLocation, env) {
     dailyMap[todayStr] = (Number(dailyMap[todayStr]) || 0) + 1;
     props.setProperty("VISITOR_DAILY_MAP", JSON.stringify(dailyMap));
 
-    var config = getConfig(env);
-    syncVisitToSheet_(config.SPREADSHEET_ID, todayStr, dailyMap[todayStr], clientLocation || "Unknown Location", timestamp);
+    syncVisitToSheet_(SPREADSHEET_ID, todayStr, dailyMap[todayStr], clientLocation || "Unknown Location", timestamp);
 
     return buildVisitorStatsResponse_(dailyMap, todayStr);
   } catch (err) {
@@ -136,9 +94,8 @@ function syncVisitToSheet_(sheetId, dateStr, count, location, timestamp) {
   }
 }
 
-function checkRequestStatus(requestId, env) {
-  var config = getConfig(env);
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+function checkRequestStatus(requestId) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   
   for (var i = 1; i < data.length; i++) {
@@ -152,9 +109,8 @@ function checkRequestStatus(requestId, env) {
   return { status: "NOT_FOUND" };
 }
 
-function getAllRequests(env) {
-  var config = getConfig(env);
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+function getAllRequests() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var requestList = [];
   
@@ -193,32 +149,34 @@ function getAllRequests(env) {
   return requestList.reverse(); 
 }
 
-function approveFromAdminPanel(rowIndex, clientIdentifier, durationCode, machineType, env) {
-  var config = getConfig(env);
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
-  var approvedKey = generateLicenseKeyLogic(clientIdentifier, durationCode, machineType);
+function approveFromAdminPanel(rowIndex, systemId, durationCode) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  var approvedKey = generateLicenseKeyLogic(systemId, durationCode);
+  
   sheet.getRange(rowIndex, 4).setValue("APPROVED");
   sheet.getRange(rowIndex, 5).setValue(approvedKey);
+  
   return approvedKey;
 }
 
-function adminGenerateKey(clientIdentifier, durationChoice, locationStr, machineType, appType, env) {
-  var config = getConfig(env);
+function adminGenerateKey(systemId, durationChoice, locationStr) {
   var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
   var durationCode = durationCodes[durationChoice] || '12MON';
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+  
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var requestId = "REQ-" + Utilities.getUuid().substring(0, 8).toUpperCase();
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-  var generatedKey = generateLicenseKeyLogic(clientIdentifier, durationCode, machineType);
+  
+  var generatedKey = generateLicenseKeyLogic(systemId, durationCode);
   var loc = locationStr ? locationStr : "Admin Generated";
-  var finalAppType = appType ? appType : "Standalone Application (Desktop)";
-  sheet.appendRow([requestId, String(clientIdentifier || "").trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", machineType, "N/A", "Cash", "0", "Non-GST", finalAppType]);
+  
+  sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", "N/A", "N/A", "Cash", "0", "Non-GST"]);
+  
   return generatedKey;
 }
 
-function deleteMultipleRequests(requestIds, env) {
-  var config = getConfig(env);
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+function deleteMultipleRequests(requestIds) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   
   for (var i = data.length - 1; i > 0; i--) {
@@ -229,23 +187,21 @@ function deleteMultipleRequests(requestIds, env) {
   return true;
 }
 
-function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, env, appType) {
-  var config = getConfig(env);
+function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType) {
   var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
   var durationCode = durationCodes[durationChoice] || '12MON';
   
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var requestId = "REQ-" + Utilities.getUuid().substring(0, 8).toUpperCase();
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-  var finalAppType = appType ? appType : "Standalone Application (Desktop)";
   
   var savedPhotoUrl = "No Photo";
   if (photoBase64) {
     try {
       var base64Data = photoBase64.split(',')[1];
       var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', requestId + '_photo.png');
-      var folders = DriveApp.getFoldersByName(config.DRIVE_FOLDER);
-      var targetFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(config.DRIVE_FOLDER);
+      var folders = DriveApp.getFoldersByName("POS_Activations");
+      var targetFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder("POS_Activations");
       var file = targetFolder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       savedPhotoUrl = file.getUrl();
@@ -255,14 +211,14 @@ function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64
   }
   
   if (durationCode === 'DEMO') {
-    var demoKey = generateLicenseKeyLogic(systemId, durationCode, machineType);
-    sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", demoKey, locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, finalAppType]);
+    var demoKey = generateLicenseKeyLogic(systemId, durationCode);
+    sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", demoKey, locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType]);
     return { status: "APPROVED", key: demoKey };
   } else {
-    sheet.appendRow([requestId, systemId.trim(), durationCode, "PENDING", "", locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, finalAppType]);
+    sheet.appendRow([requestId, systemId.trim(), durationCode, "PENDING", "", locationStr, timestamp, savedPhotoUrl, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType]);
     
     if (paymentMethod === 'Online') {
-      var orderResponse = createPaymentOrder(durationChoice, systemId.trim(), requestId, shopName, machineType, areaPin, paymentAmount, env);
+      var orderResponse = createPaymentOrder(durationChoice, systemId.trim(), requestId, shopName, machineType, areaPin, paymentAmount);
       return { 
         status: "PAYMENT_REQUIRED", 
         requestId: requestId, 
@@ -280,8 +236,7 @@ function requestKeyFromPython(systemId, durationChoice, locationStr, photoBase64
   }
 }
 
-function createPaymentOrder(durationChoice, systemId, requestId, shopName, machineType, areaPin, paymentAmount, env) {
-  var config = getConfig(env);
+function createPaymentOrder(durationChoice, systemId, requestId, shopName, machineType, areaPin, paymentAmount) {
   var amount = parseInt(paymentAmount, 10) * 100; 
   if (isNaN(amount) || amount <= 0) amount = 500000; 
   
@@ -289,7 +244,7 @@ function createPaymentOrder(durationChoice, systemId, requestId, shopName, machi
   var options = {
     "method": "post",
     "headers": {
-      "Authorization": "Basic " + Utilities.base64Encode(config.RAZORPAY_KEY_ID + ":" + config.RAZORPAY_KEY_SECRET)
+      "Authorization": "Basic " + Utilities.base64Encode(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET)
     },
     "payload": {
       "amount": amount,
@@ -326,10 +281,9 @@ function doPost(e) {
       var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
       var durationCode = durationCodes[durationChoice] || '12MON';
       
-      var config = getConfig("LIVE");
-      var generatedKey = generateLicenseKeyLogic(systemId, durationCode, "Desktop");
+      var generatedKey = generateLicenseKeyLogic(systemId, durationCode);
       
-      var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+      var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
       var data = sheet.getDataRange().getValues();
       for (var i = 1; i < data.length; i++) {
         if (data[i][0] === reqId) {
@@ -353,11 +307,11 @@ function doPost(e) {
   }
 }
 
-function generateLicenseKeyLogic(clientIdentifier, durationCode, machineType) {
+function generateLicenseKeyLogic(systemId, durationCode) {
   var SECRET_WORD = "MySuperSecretHotelApp2026";
   var today = new Date();
   var generationDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyyMMdd");
-  var rawData = String(clientIdentifier || "").trim().toUpperCase() + SECRET_WORD + String(durationCode || "").trim().toUpperCase() + String(machineType || "").trim().toUpperCase() + generationDate;
+  var rawData = systemId.trim().toUpperCase() + SECRET_WORD + durationCode + generationDate;
   
   var rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, rawData, Utilities.Charset.UTF_8);
   var hexString = "";
@@ -373,9 +327,8 @@ function generateLicenseKeyLogic(clientIdentifier, durationCode, machineType) {
   return rawKey.substring(0, 4) + "-" + rawKey.substring(4, 8) + "-" + rawKey.substring(8, 12) + "-" + rawKey.substring(12, 16);
 }
 
-function generateInvoicePDFBase64(requestId, env) {
-  var config = getConfig(env);
-  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
+function generateInvoicePDFBase64(requestId) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var reqData = null;
   
