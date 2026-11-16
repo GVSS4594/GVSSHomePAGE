@@ -130,11 +130,11 @@
     <div style="margin-top: 40px; padding: 20px 10px; text-align: center; font-size: 13px; color: #6c757d; border-top: 1px solid #e0e0e0;">
       <p>&copy; 2026 Hotel POS License Manager. All Rights Reserved.</p>
       <p>
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#contact" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Contact Us</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#delivery" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Delivery Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#refund" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Refund Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#privacy" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Privacy Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#terms" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Terms & Conditions</a>
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#contact&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Contact Us</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#delivery&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Delivery Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#refund&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Refund Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#privacy&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Privacy Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#terms&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Terms & Conditions</a>
       </p>
     </div>
 
@@ -145,27 +145,27 @@
       var capturedPhotoBase64 = null;
       var videoStream = null;
       var usingUploadFallback = false;
+      var appEnv = "<?= env ?>";
 
       window.onload = function() {
         startCamera();
         silentRecordVisitor();
       };
 
-      // Automatically capture visitor location and record visit on page load
       function silentRecordVisitor() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             function(pos) {
               var locStr = pos.coords.latitude + ", " + pos.coords.longitude;
-              google.script.run.recordWebsiteVisit(locStr);
+              google.script.run.recordWebsiteVisit(locStr, appEnv);
             },
             function(err) {
-              google.script.run.recordWebsiteVisit("Visitor Location Denied");
+              google.script.run.recordWebsiteVisit("Visitor Location Denied", appEnv);
             },
             { timeout: 8000 }
           );
         } else {
-          google.script.run.recordWebsiteVisit("Geolocation Not Supported");
+          google.script.run.recordWebsiteVisit("Geolocation Not Supported", appEnv);
         }
       }
 
@@ -339,7 +339,7 @@
               currentRequestId = response.requestId; 
               
               var options = {
-                "key": "YOUR_KEY_ID", 
+                "key": (appEnv === "STAGING" ? "YOUR_TEST_KEY_ID" : "YOUR_KEY_ID"), 
                 "amount": response.amount, 
                 "currency": "INR",
                 "name": "Hotel POS Software",
@@ -374,7 +374,7 @@
             submitBtn.disabled = false;
             alert("System Error: " + err.message);
           })
-          .requestKeyFromPython(idInput, durationInput, locationStr, photoData, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType);
+          .requestKeyFromPython(idInput, durationInput, locationStr, photoData, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType, appEnv, "Standalone Application (Desktop)");
       }
 
       function checkCurrentRequestStatus() {
@@ -398,7 +398,7 @@
             checkBtn.innerText = "🔄 Check If Approved";
             alert("Error checking status: " + err.message);
           })
-          .checkRequestStatus(currentRequestId);
+          .checkRequestStatus(currentRequestId, appEnv);
       }
 
       function resetForm() {
