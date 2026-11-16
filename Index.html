@@ -130,11 +130,11 @@
     <div style="margin-top: 40px; padding: 20px 10px; text-align: center; font-size: 13px; color: #6c757d; border-top: 1px solid #e0e0e0;">
       <p>&copy; 2026 Hotel POS License Manager. All Rights Reserved.</p>
       <p>
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#contact&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Contact Us</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#delivery&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Delivery Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#refund&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Refund Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#privacy&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Privacy Policy</a> |
-        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies#terms&env=<?= appEnv ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Terms & Conditions</a>
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies&env=<?= env ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Contact Us</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies&env=<?= env ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Delivery Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies&env=<?= env ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Refund Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies&env=<?= env ?>" target="_top" style="color: #0275d8; text-decoration: none; margin: 0 8px;">Privacy Policy</a> |
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=policies&env=<?= env ?>" target="_top" style="color: #0275d8; text-EventListener: none; margin: 0 8px;">Terms & Conditions</a>
       </p>
     </div>
 
@@ -302,7 +302,7 @@
               if (error.code === error.POSITION_UNAVAILABLE) errorMsg = "GPS Network Unavailable";
               if (error.code === error.TIMEOUT) errorMsg = "Request Timed Out";
               
-              alert("Location capture failed: " + errorMsg + "\\nSubmitting request without location.");
+              alert("Location capture failed: " + errorMsg + "\nSubmitting request without location.");
               submitDataToBackend(idInput, durationInput, errorMsg, capturedPhotoBase64, shopName, shopAddress, machineType, areaPin, paymentMethod, paymentAmount, invoiceType);
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } 
