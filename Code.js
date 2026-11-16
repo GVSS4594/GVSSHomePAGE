@@ -6,6 +6,7 @@ var RAZORPAY_KEY_ID = "YOUR_KEY_ID";
 var RAZORPAY_KEY_SECRET = "YOUR_KEY_SECRET";
 
 function doGet(e) {
+  var env = getEnvironment_(e && e.parameter ? e.parameter.env : "");
   if (e && e.parameter && e.parameter.page === "policies") {
     return HtmlService.createTemplateFromFile('Policies').evaluate()
         .setTitle('Store Policies & Legal Terms')
@@ -13,14 +14,41 @@ function doGet(e) {
   }
 
   if (e && e.parameter && e.parameter.mode === "admin") {
-    return HtmlService.createTemplateFromFile('Admin').evaluate()
+    var adminTemplate = HtmlService.createTemplateFromFile('Admin');
+    adminTemplate.env = env;
+    adminTemplate.showInvoice = getInvoiceVisibility();
+    return adminTemplate.evaluate()
         .setTitle('Admin Dashboard - License Manager')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-  return HtmlService.createTemplateFromFile('Index').evaluate()
+  var indexTemplate = HtmlService.createTemplateFromFile('Index');
+  indexTemplate.showInvoice = getInvoiceVisibility();
+  return indexTemplate.evaluate()
       .setTitle('Hotel POS License Generator')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function getEnvironment_(env) {
+  return String(env || "").toUpperCase() === "STAGING" ? "STAGING" : "LIVE";
+}
+
+function getConfig(env) {
+  var environment = getEnvironment_(env);
+  return {
+    SPREADSHEET_ID: SPREADSHEET_ID,
+    SHEET_NAME: environment === "STAGING" ? "Sheet_Staging" : SHEET_NAME
+  };
+}
+
+function getInvoiceVisibility() {
+  return PropertiesService.getScriptProperties().getProperty("SHOW_INVOICE") !== "false";
+}
+
+function toggleInvoiceVisibility(isVisible) {
+  var value = Boolean(isVisible);
+  PropertiesService.getScriptProperties().setProperty("SHOW_INVOICE", String(value));
+  return value;
 }
 
 // --- VISITOR & LOCATION ANALYTICS BACKEND ---
@@ -109,8 +137,9 @@ function checkRequestStatus(requestId) {
   return { status: "NOT_FOUND" };
 }
 
-function getAllRequests() {
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+function getAllRequests(env) {
+  var config = getConfig(env);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var requestList = [];
   
@@ -130,6 +159,7 @@ function getAllRequests() {
         rowIndex: i + 1, 
         requestId: String(data[i][0]),
         systemId: String(data[i][1]),
+        clientIdentifier: String(data[i][1]),
         duration: String(data[i][2]),
         status: String(data[i][3]), 
         key: String(data[i][4] || ""),    
@@ -142,15 +172,17 @@ function getAllRequests() {
         areaPin: String(data[i][11] || "N/A"),
         paymentMethod: String(data[i][12] || "N/A"),
         paymentAmount: String(data[i][13] || "0"),
-        invoiceType: String(data[i][14] || "N/A")
+        invoiceType: String(data[i][14] || "N/A"),
+        appType: String(data[i][15] || "Standalone Application (Desktop)")
       });
     }
   }
   return requestList.reverse(); 
 }
 
-function approveFromAdminPanel(rowIndex, systemId, durationCode) {
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+function approveFromAdminPanel(rowIndex, systemId, durationCode, machineType, env) {
+  var config = getConfig(env);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var approvedKey = generateLicenseKeyLogic(systemId, durationCode);
   
   sheet.getRange(rowIndex, 4).setValue("APPROVED");
@@ -159,24 +191,28 @@ function approveFromAdminPanel(rowIndex, systemId, durationCode) {
   return approvedKey;
 }
 
-function adminGenerateKey(systemId, durationChoice, locationStr) {
+function adminGenerateKey(systemId, durationChoice, locationStr, machineType, appType, env) {
+  var config = getConfig(env);
   var durationCodes = { '1': 'DEMO', '2': '3MON', '3': '6MON', '4': '12MON', '5': 'LIFE' };
   var durationCode = durationCodes[durationChoice] || '12MON';
   
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var requestId = "REQ-" + Utilities.getUuid().substring(0, 8).toUpperCase();
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
   
   var generatedKey = generateLicenseKeyLogic(systemId, durationCode);
   var loc = locationStr ? locationStr : "Admin Generated";
+  var finalMachineType = machineType || "N/A";
+  var finalAppType = appType || "Standalone Application (Desktop)";
   
-  sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", "N/A", "N/A", "Cash", "0", "Non-GST"]);
+  sheet.appendRow([requestId, systemId.trim(), durationCode, "APPROVED", generatedKey, loc, timestamp, "N/A", "N/A", "N/A", finalMachineType, "N/A", "Cash", "0", "Non-GST", finalAppType]);
   
   return generatedKey;
 }
 
-function deleteMultipleRequests(requestIds) {
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+function deleteMultipleRequests(requestIds, env) {
+  var config = getConfig(env);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   
   for (var i = data.length - 1; i > 0; i--) {
@@ -327,8 +363,9 @@ function generateLicenseKeyLogic(systemId, durationCode) {
   return rawKey.substring(0, 4) + "-" + rawKey.substring(4, 8) + "-" + rawKey.substring(8, 12) + "-" + rawKey.substring(12, 16);
 }
 
-function generateInvoicePDFBase64(requestId) {
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+function generateInvoicePDFBase64(requestId, env) {
+  var config = getConfig(env);
+  var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var reqData = null;
   

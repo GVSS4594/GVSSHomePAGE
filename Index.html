@@ -79,11 +79,13 @@
       <label for="paymentAmount">Payment Amount (₹):</label>
       <input type="number" id="paymentAmount" placeholder="Enter Total Amount (e.g. 10000)">
       
-      <label for="invoiceType">Invoice Type:</label>
-      <select id="invoiceType">
-        <option value="GST">GST Invoice (18% Inclusive)</option>
-        <option value="Non-GST" selected>Non-GST Invoice</option>
-      </select>
+      <div style="<?= showInvoice ? '' : 'display:none;' ?>">
+        <label for="invoiceType">Invoice Type:</label>
+        <select id="invoiceType">
+          <option value="GST">GST Invoice (18% Inclusive)</option>
+          <option value="Non-GST" selected>Non-GST Invoice</option>
+        </select>
+      </div>
 
       <label for="systemId">Client's System ID:</label>
       <input type="text" id="systemId" placeholder="Enter System ID...">

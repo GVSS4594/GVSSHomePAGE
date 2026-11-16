@@ -1,352 +1,372 @@
 <!DOCTYPE html>
+<!--
+  Application: Admin Dashboard - POS Manager
+  File: Admin.html
+  Version: v1.5
+  Last Updated: 2026-10-21 17:20
+  Description: Admin panel with live/staging environment radio toggle and request count notification.
+-->
 <html lang="en">
 <head>
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - License Manager</title>
+  <title>Admin Dashboard - POS Manager</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
     .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-    h2 { color: #0275d8; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    h2 { color: #0275d8; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+    .env-toolbar { display: flex; align-items: center; gap: 12px; background: #e9ecef; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: normal; }
+    .env-toolbar label { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+    .request-count-badge { background: #0275d8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 5px; }
+
     .manual-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-    .manual-box input, .manual-box select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; outline: none; }
+    .manual-box input[type="text"], .manual-box select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; outline: none; }
+    .manual-box input[type="text"]:focus, .manual-box select:focus { border-color: #0275d8; }
+
     .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; color: white; }
     .btn-primary { background: #0275d8; }
+    .btn-primary:hover { background: #025aa5; }
     .btn-success { background: #28a745; }
+    .btn-success:hover { background: #218838; }
     .btn-danger { background: #dc3545; }
-    .btn-bulk-delete { background-color: #dc3545; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
-    .btn-bulk-delete:hover { background-color: #c82333; }
+    .btn-danger:hover { background: #c82333; }
+    .btn-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+    .visitor-count { background: #0d9488; }
+    .visitor-scope { color: #6c757d; font-size: 12px; }
+
+    .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #dee2e6; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
     th, td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
     th { background-color: #f8f9fa; font-weight: 600; color: #495057; white-space: nowrap; }
     tr:hover { background-color: #f1f3f5; }
+
     .badge { padding: 5px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
     .badge-pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
     .badge-approved { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
     .key-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0275d8; letter-spacing: 0.5px; }
     .shop-details { font-size: 13px; line-height: 1.4; }
-
-    /* Compact Visitor Analytics Widget Panel */
-    .gvss-analytics-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: center; }
-    .gvss-stat-mini { display: flex; justify-content: space-around; gap: 10px; text-align: center; }
-    .gvss-stat-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; flex: 1; }
-    .gvss-stat-card h5 { margin: 0 0 4px 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
-    .gvss-stat-card .stat-num { font-size: 22px; font-weight: 800; color: #0f172a; }
-    .gvss-cal-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
-    .gvss-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
-    .gvss-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
-    .gvss-cal-day-name { font-size: 10px; font-weight: 700; color: #475569; }
-    .gvss-cal-cell { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; min-height: 32px; padding: 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-    .gvss-cal-cell:hover { border-color: #2563eb; background: #eff6ff; }
-    .gvss-cal-cell.active-date { border: 2px solid #2563eb; background: #dbeafe; }
-    .gvss-cal-date-num { font-size: 10px; font-weight: 600; color: #334155; }
-    .gvss-cal-badge { font-size: 9px; font-weight: 700; color: #166534; }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h2>
-      🛡️ License Admin Dashboard
-      <a href="<?= ScriptApp.getService().getUrl() ?>" target="_top" style="font-size: 14px; color: #0275d8; text-decoration: none;">&larr; Back to Store</a>
+      <span>🛡️ License Admin Dashboard</span>
+
+      <!-- Environment Radio Toggle & Total Request Counter -->
+      <div class="env-toolbar">
+        <span>Environment:</span>
+        <label><input type="radio" name="envRadio" value="LIVE" checked onchange="switchEnvironment('LIVE')"> Live</label>
+        <label><input type="radio" name="envRadio" value="STAGING" onchange="switchEnvironment('STAGING')"> Staging</label>
+        <span id="requestCountBadge" class="request-count-badge">Total: 0</span>
+      </div>
+
+      <a href="<?= ScriptApp.getService().getUrl() ?>?env=<?= env ?>" target="_top" style="font-size: 14px; color: #6c757d; text-decoration: none;">&larr; Back to Store</a>
     </h2>
 
-    <!-- Compact Visitor Analytics & Calendar Window on Top -->
-    <div class="gvss-analytics-panel">
-      <div class="gvss-stat-mini">
-        <div class="gvss-stat-card">
-          <h5>Total Visitors</h5>
-          <div class="stat-num" id="adminTotalVisitors">0</div>
-        </div>
-        <div class="gvss-stat-card">
-          <h5>Today (<span id="adminTodayDateLabel">--</span>)</h5>
-          <div class="stat-num" id="adminTodayVisitors" style="color:#16a34a;">0</div>
-        </div>
-      </div>
-      <div class="gvss-cal-box">
-        <div class="gvss-cal-header">
-          <button onclick="changeCalendarMonth(-1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">◀</button>
-          <strong id="calMonthYearLabel" style="font-size:12px;">Month Year</strong>
-          <button onclick="changeCalendarMonth(1)" class="btn btn-primary" style="padding:2px 6px;font-size:11px;">▶</button>
-        </div>
-        <div class="gvss-cal-grid" id="visitorCalendarGrid"></div>
-      </div>
+    <div class="manual-box" style="background: #e8f5e9; border: 1px solid #c3e6cb;">
+      <strong style="color: #155724;">Frontend Form Settings:</strong>
+      <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="toggleInvoice" <?= showInvoice ? 'checked' : '' ?> onchange="updateInvoiceSetting(this.checked)" style="width: 18px; height: 18px;">
+        Show "Invoice Type" Dropdown to Users
+      </label>
+      <span id="settingStatus" style="font-size: 13px; color: #155724; font-weight: bold; display: none; margin-left: 15px;">✅ Saved!</span>
     </div>
 
-    <!-- Original Quick Manual Key Generator Layout -->
     <div class="manual-box">
-      <strong>Quick Key Generator:</strong>
-      <input type="text" id="manualSystemId" placeholder="Enter System ID...">
-      <select id="manualDuration">
+      <strong style="color: #495057;">Manual Generator:</strong>
+      <select id="adminAppType" onchange="updateAdminInputPlaceholder()">
+        <option value="Standalone Application (Desktop)">Standalone (Desktop)</option>
+        <option value="Web Application (Cloud)">Web App (Cloud)</option>
+      </select>
+      <select id="adminMachineType">
+        <option value="Apparel & Clothing POS">Apparel & Clothing POS</option>
+        <option value="Restaurant POS">Restaurant POS</option>
+        <option value="Retail POS">Retail POS</option>
+        <option value="Super Market">Super Market</option>
+      </select>
+      <input type="text" id="adminSysId" placeholder="Enter System ID...">
+      <select id="adminDuration">
         <option value="1">7 Days Demo</option>
         <option value="2">3 Months</option>
         <option value="3">6 Months</option>
         <option value="4" selected>12 Months</option>
         <option value="5">Lifetime</option>
       </select>
-      <input type="text" id="manualLocation" placeholder="Location note..." value="Admin Panel">
-      <button class="btn btn-success" onclick="generateManualKey()">Generate & Approve</button>
-      <div id="manualResult" class="key-text" style="display:none; width:100%;"></div>
+      <button class="btn btn-primary" onclick="manualGenerate()" id="btnManual">Generate Key</button>
     </div>
 
-    <!-- Original Customer License Requests Table Layout -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h3 style="margin: 0;">📋 Customer License Requests</h3>
-      <button class="btn btn-bulk-delete" onclick="deleteSelectedRequests()">Delete Selected</button>
+    <div class="btn-toolbar">
+      <button class="btn btn-primary" onclick="loadRequests()">🔄 Refresh List</button>
+      <button class="btn btn-danger" onclick="deleteSelected()">🗑️ Delete Selected</button>
+      <button class="btn visitor-count" id="totalVisitorsBtn" type="button">Total Visitors: 0</button>
+      <button class="btn visitor-count" id="todayVisitorsBtn" type="button">Today's Visitors: 0</button>
+      <span class="visitor-scope">Counts are recorded visits (not unique users), shared across Live and Staging.</span>
     </div>
 
-    <div style="overflow-x: auto;">
-      <table>
+    <div class="table-responsive">
+      <table id="requestsTable">
         <thead>
           <tr>
-            <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
-            <th>Request ID</th>
-            <th>Shop Details</th>
-            <th>System ID & Location</th>
-            <th>Duration & Machine</th>
-            <th>Status & Key</th>
-            <th>Actions</th>
+            <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes()"></th>
+            <th>Date & Time</th>
+            <th>Shop / Payment Details</th>
+            <th>System / Email ID</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>License Key</th>
+            <th>Photo / GPS</th>
+            <th>Action</th>
           </tr>
         </thead>
-        <tbody id="requestTableBody">
-          <tr><td colspan="7" style="text-align: center; color: #777;">Loading requests...</td></tr>
+        <tbody id="tableBody">
+          <tr><td colspan="9" style="text-align:center; padding: 30px;">Loading requests...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    let visitorDailyCounts = {};
-    let currentCalYear = new Date().getFullYear();
-    let currentCalMonth = new Date().getMonth();
+    var CURRENT_ENV = "<?= env ?>";
 
     window.onload = function() {
+      document.querySelector('input[name="envRadio"][value="' + CURRENT_ENV + '"]').checked = true;
       loadRequests();
       loadVisitorStats();
     };
 
+    function switchEnvironment(env) {
+      CURRENT_ENV = env;
+      loadRequests();
+    }
+
+    function updateAdminInputPlaceholder() {
+      let type = document.getElementById('adminAppType').value;
+      let input = document.getElementById('adminSysId');
+      if(type === 'Web Application (Cloud)') {
+        input.placeholder = "Enter Email ID...";
+      } else {
+        input.placeholder = "Enter System ID...";
+      }
+    }
+
+    function updateInvoiceSetting(isChecked) {
+      let statusText = document.getElementById('settingStatus');
+      statusText.style.display = 'none';
+      google.script.run
+        .withSuccessHandler(function() {
+          statusText.style.display = 'inline';
+          setTimeout(() => statusText.style.display = 'none', 2500);
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('toggleInvoice').checked = !isChecked;
+          alert("Error saving invoice setting: " + err.message);
+        })
+        .toggleInvoiceVisibility(isChecked);
+    }
+
     function loadVisitorStats() {
       google.script.run
-        .withSuccessHandler(updateVisitorUI)
+        .withSuccessHandler(function(data) {
+          if (!data) {
+            document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: unavailable";
+            document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: unavailable";
+            return;
+          }
+          document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: " + data.totalVisitors;
+          document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: " + data.todayVisitors;
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('totalVisitorsBtn').innerText = "Total Visitors: unavailable";
+          document.getElementById('todayVisitorsBtn').innerText = "Today's Visitors: unavailable";
+          alert("Error loading visitor counts: " + err.message);
+        })
         .getAdminVisitorStats();
     }
 
-    function updateVisitorUI(data) {
-      if (!data) return;
-      visitorDailyCounts = data.dailyCounts || {};
-      document.getElementById("adminTotalVisitors").textContent = data.totalVisitors || 0;
-      document.getElementById("adminTodayVisitors").textContent = data.todayVisitors || 0;
-      document.getElementById("adminTodayDateLabel").textContent = data.todayDate || "";
-      renderVisitorCalendar(currentCalYear, currentCalMonth);
+    function loadRequests() {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 30px;">Loading data from ' + CURRENT_ENV + '...</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          // Update total request notification counter badge
+          let totalCount = (data && Array.isArray(data)) ? data.length : 0;
+          document.getElementById('requestCountBadge').innerText = "Total: " + totalCount;
+          renderTable(data);
+        })
+        .withFailureHandler(err => alert("Error loading data: " + err.message))
+        .getAllRequests(CURRENT_ENV);
     }
 
-    function changeCalendarMonth(offset) {
-      currentCalMonth += offset;
-      if (currentCalMonth < 0) {
-        currentCalMonth = 11;
-        currentCalYear--;
-      } else if (currentCalMonth > 11) {
-        currentCalMonth = 0;
-        currentCalYear++;
+    function renderTable(data) {
+      let tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 30px; color: #6c757d;">No requests found in database.</td></tr>';
+        return;
       }
-      renderVisitorCalendar(currentCalYear, currentCalMonth);
-    }
 
-    function renderVisitorCalendar(year, month) {
-      const grid = document.getElementById("visitorCalendarGrid");
-      grid.innerHTML = "";
+      data.forEach(row => {
+        let isApproved = row.status === 'APPROVED';
+        let statusBadge = isApproved
+          ? `<span class="badge badge-approved">APPROVED</span>`
+          : `<span class="badge badge-pending">${row.status}</span>`;
 
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      document.getElementById("calMonthYearLabel").textContent = monthNames[month] + " " + year;
+        let safeClientIdentifier = String(row.clientIdentifier).replace(/'/g, "\\\'");
+        let safeMachineType = String(row.machineType).replace(/'/g, "\\\'");
 
-      const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
-      dayNames.forEach(function(d) {
-        const el = document.createElement("div");
-        el.className = "gvss-cal-day-name";
-        el.textContent = d;
-        grid.appendChild(el);
+        let actionBtn = !isApproved
+          ? `<button class="btn btn-success" style="padding: 5px 10px; font-size: 12px;" onclick="approveRequest(${row.rowIndex}, '${safeClientIdentifier}', '${row.duration}', '${safeMachineType}')">Approve</button>`
+          : `<span style="color:#aaa;">-</span>`;
+
+        let billBtn = `<button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px; margin-left: 5px;" onclick="downloadInvoice('${row.requestId}', event)">📄 Bill</button>`;
+
+        let photoDisplay = (row.photoUrl && row.photoUrl !== 'No Photo' && row.photoUrl !== 'N/A')
+          ? `<a href="${row.photoUrl}" target="_blank" style="color: #0275d8; text-decoration: none; font-weight: bold;">View 📸</a>`
+          : `<span style="color:#aaa;">No Photo</span>`;
+
+        let locText = row.location;
+        let locationDisplay = "";
+
+        if (locText.includes(',') && !locText.includes('Error') && !locText.includes('Denied') && !locText.includes('Browser')) {
+            locationDisplay = `<a href="https://www.google.com/maps?q=${encodeURIComponent(locText)}" target="_blank" style="color: #28a745; text-decoration: none; font-weight: bold; margin-top: 4px; display: inline-block;">📍 Map</a>`;
+        } else if (locText === "Unknown" || locText === "Admin Generated") {
+            locationDisplay = `<span style="color:#aaa; font-size: 11px; margin-top: 4px; display: inline-block;">No GPS</span>`;
+        } else {
+            locationDisplay = `<span style="color:#dc3545; font-size: 11px; margin-top: 4px; display: inline-block;" title="${locText}">GPS Failed</span>`;
+        }
+
+        let shopDisplay = `<div class="shop-details">
+                            <strong>${row.shopName}</strong><br>
+                            <span style="color: #6c757d; font-size:11px;">${row.shopAddress}</span><br>
+                            <span style="color: #6c757d;">${row.machineType} | PIN: ${row.areaPin}</span><br>
+                            <span style="color: #0275d8; font-weight: bold;">₹${row.paymentAmount}</span> <span style="color: #6c757d;">| ${row.paymentMethod} | ${row.invoiceType}</span>
+                           </div>`;
+
+        let isWeb = row.appType.includes('Web');
+        let appBadgeStyle = isWeb ? 'background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb;' : 'background: #f8f9fa; color: #495057; border: 1px solid #dee2e6;';
+        let appBadgeText = isWeb ? '☁️ Web App' : '💻 Desktop App';
+
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" class="row-checkbox" value="${row.requestId}"></td>
+          <td style="font-size: 12px; color: #6c757d;">${row.timestamp}</td>
+          <td>${shopDisplay}</td>
+          <td>
+            <div style="font-family: monospace; font-size: 13px;">${row.clientIdentifier}</div>
+            <span style="font-size: 10px; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-top: 4px; ${appBadgeStyle}">${appBadgeText}</span>
+          </td>
+          <td>${row.duration}</td>
+          <td>${statusBadge}</td>
+          <td class="key-text">${row.key || '-'}</td>
+          <td style="font-size: 12px; color: #6c757d;">${photoDisplay}<br>${locationDisplay}</td>
+          <td>${actionBtn} ${billBtn}</td>
+        `;
+        tbody.appendChild(tr);
       });
 
-      const firstDayIndex = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      document.getElementById('selectAll').checked = false;
+    }
 
-      for (let i = 0; i < firstDayIndex; i++) {
-        grid.appendChild(document.createElement("div"));
-      }
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const mm = String(month + 1).padStart(2, "0");
-        const dd = String(day).padStart(2, "0");
-        const dateKey = year + "-" + mm + "-" + dd;
-        const count = Number(visitorDailyCounts[dateKey]) || 0;
-
-        const cell = document.createElement("div");
-        cell.className = "gvss-cal-cell";
-        cell.title = dateKey + ": " + count + " visitors";
-
-        const dateNum = document.createElement("div");
-        dateNum.className = "gvss-cal-date-num";
-        dateNum.textContent = day;
-
-        const badge = document.createElement("div");
-        badge.className = "gvss-cal-badge";
-        badge.textContent = count > 0 ? count : "";
-
-        cell.appendChild(dateNum);
-        cell.appendChild(badge);
-        grid.appendChild(cell);
+    function approveRequest(rowIndex, sysId, durationCode, machineType) {
+      if (confirm(`Are you sure you want to approve this request and generate a ${durationCode} key for ${machineType} in [${CURRENT_ENV}]?`)) {
+        google.script.run
+          .withSuccessHandler(() => {
+            alert("✅ Key generated successfully!");
+            loadRequests();
+          })
+          .withFailureHandler((err) => {
+            alert("❌ Approval Failed: " + err.message);
+          })
+          .approveFromAdminPanel(rowIndex, sysId, durationCode, machineType, CURRENT_ENV);
       }
     }
 
-    function loadRequests() {
-      google.script.run
-        .withSuccessHandler(function(requests) {
-          var tbody = document.getElementById('requestTableBody');
-          tbody.innerHTML = "";
-          
-          if (requests.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #777;">No requests found.</td></tr>';
-            return;
-          }
-          
-          requests.forEach(function(req) {
-            var tr = document.createElement('tr');
-            
-            var statusBadge = req.status === 'APPROVED' 
-              ? '<span class="badge badge-approved">APPROVED</span>' 
-              : '<span class="badge badge-pending">PENDING</span>';
-              
-            var keyContent = req.key ? '<span class="key-text">' + req.key + '</span>' : '<em>Pending Key</em>';
-            
-            var actionBtn = req.status !== 'APPROVED'
-              ? '<button class="btn btn-success" onclick="approveRequest(' + req.rowIndex + ', \'' + req.systemId + '\', \'' + req.duration + '\')">Approve</button>'
-              : '<button class="btn btn-primary" onclick="downloadInvoice(\'' + req.requestId + '\')">Invoice PDF</button>';
+    function manualGenerate() {
+      let sysId = document.getElementById('adminSysId').value.trim();
+      let durationChoice = document.getElementById('adminDuration').value;
+      let machineType = document.getElementById('adminMachineType').value;
+      let appType = document.getElementById('adminAppType').value;
+      let btn = document.getElementById('btnManual');
 
-            var photoHtml = req.photoUrl !== 'No Photo' && req.photoUrl !== 'Error Saving Photo' 
-              ? '<br><a href="' + req.photoUrl + '" target="_blank" style="font-size: 11px; color: #0275d8;">📸 View Photo</a>' 
-              : '';
-
-            tr.innerHTML = `
-              <td><input type="checkbox" class="reqCheckbox" value="${req.requestId}"></td>
-              <td><strong>${req.requestId}</strong><br><small style="color: #666;">${req.timestamp}</small></td>
-              <td>
-                <div class="shop-details">
-                  <strong>${req.shopName}</strong><br>
-                  ${req.shopAddress}<br>
-                  PIN: ${req.areaPin}
-                  ${photoHtml}
-                </div>
-              </td>
-              <td>
-                <code style="background:#e9ecef; padding:2px 4px; border-radius:4px;">${req.systemId}</code><br>
-                <small style="color: #555;">📍 ${req.location}</small>
-              </td>
-              <td>
-                <strong>${req.duration}</strong><br>
-                <small style="color: #666;">Machine: ${req.machineType}</small><br>
-                <small style="color: #666;">Pay: ${req.paymentMethod} (₹${req.paymentAmount})</small>
-              </td>
-              <td>${statusBadge}<br>${keyContent}</td>
-              <td>${actionBtn}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-        })
-        .withFailureHandler(function(err) {
-          alert("Failed to load requests: " + err.message);
-        })
-        .getAllRequests();
-    }
-
-    function approveRequest(rowIndex, systemId, durationCode) {
-      if (!confirm("Are you sure you want to approve and generate a key for System ID: " + systemId + "?")) return;
-      
-      google.script.run
-        .withSuccessHandler(function(key) {
-          alert("Key generated successfully: " + key);
-          loadRequests();
-        })
-        .withFailureHandler(function(err) {
-          alert("Approval failed: " + err.message);
-        })
-        .approveFromAdminPanel(rowIndex, systemId, durationCode);
-    }
-
-    function generateManualKey() {
-      var systemId = document.getElementById('manualSystemId').value.trim();
-      var durationChoice = document.getElementById('manualDuration').value;
-      var locationStr = document.getElementById('manualLocation').value.trim();
-      
-      if (!systemId) {
-        alert("Please enter a System ID.");
+      if (!sysId) {
+        alert("Please enter a System ID or Email.");
         return;
       }
-      
+
+      btn.innerText = "Generating...";
+      btn.disabled = true;
+
       google.script.run
-        .withSuccessHandler(function(key) {
-          var resBox = document.getElementById('manualResult');
-          resBox.style.display = "block";
-          resBox.innerText = "Generated Key: " + key;
+        .withSuccessHandler((key) => {
+          btn.innerText = "Generate Key";
+          btn.disabled = false;
+          document.getElementById('adminSysId').value = '';
+          alert("✅ Key Generated in [" + CURRENT_ENV + "]: " + key);
           loadRequests();
         })
-        .withFailureHandler(function(err) {
-          alert("Key generation failed: " + err.message);
+        .withFailureHandler((err) => {
+          btn.innerText = "Generate Key";
+          btn.disabled = false;
+          alert("❌ Key Generation Failed: " + err.message);
         })
-        .adminGenerateKey(systemId, durationChoice, locationStr);
+        .adminGenerateKey(sysId, durationChoice, "Admin Generated", machineType, appType, CURRENT_ENV);
     }
 
-    function toggleSelectAll(source) {
-      var checkboxes = document.querySelectorAll('.reqCheckbox');
-      checkboxes.forEach(function(cb) { cb.checked = source.checked; });
-    }
+    function downloadInvoice(reqId, event) {
+      let btn = event.target;
+      let originalText = btn.innerText;
+      btn.innerText = "⏳...";
+      btn.disabled = true;
 
-    function deleteSelectedRequests() {
-      var checkboxes = document.querySelectorAll('.reqCheckbox:checked');
-      if (checkboxes.length === 0) {
-        alert("Please select at least one request to delete.");
-        return;
-      }
-      
-      if (!confirm("Are you sure you want to delete " + checkboxes.length + " selected request(s)?")) return;
-      
-      var idsToDelete = [];
-      checkboxes.forEach(function(cb) { idsToDelete.push(cb.value); });
-      
-      google.script.run
-        .withSuccessHandler(function() {
-          alert("Selected requests deleted successfully.");
-          loadRequests();
-        })
-        .withFailureHandler(function(err) {
-          alert("Deletion failed: " + err.message);
-        })
-        .deleteMultipleRequests(idsToDelete);
-    }
-
-    function downloadInvoice(requestId) {
       google.script.run
         .withSuccessHandler(function(base64Data) {
-          if (!base64Data) {
-            alert("Invoice could not be generated.");
+          btn.innerText = originalText;
+          btn.disabled = false;
+          if(!base64Data) {
+            alert("Error generating invoice PDF.");
             return;
           }
-          var byteCharacters = atob(base64Data);
-          var byteNumbers = new Array(byteCharacters.length);
-          for (var i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          var byteArray = new Uint8Array(byteNumbers);
-          var blob = new Blob([byteArray], { type: 'application/pdf' });
-          var link = document.createElement('a');
-          link.href = window.URL.createObjectURL(blob);
-          link.download = requestId + "_Invoice.pdf";
+          const link = document.createElement('a');
+          link.href = 'data:application/pdf;base64,' + base64Data;
+          link.download = 'Invoice_' + CURRENT_ENV + '_' + reqId + '.pdf';
           link.click();
         })
         .withFailureHandler(function(err) {
-          alert("Failed to download invoice: " + err.message);
+          btn.innerText = originalText;
+          btn.disabled = false;
+          alert("System Error: " + err.message);
         })
-        .generateInvoicePDFBase64(requestId);
+        .generateInvoicePDFBase64(reqId, CURRENT_ENV);
+    }
+
+    function toggleAllCheckboxes() {
+      let isChecked = document.getElementById('selectAll').checked;
+      let checkboxes = document.querySelectorAll('.row-checkbox');
+      checkboxes.forEach(box => box.checked = isChecked);
+    }
+
+    function deleteSelected() {
+      let checkboxes = document.querySelectorAll('.row-checkbox:checked');
+      let selectedIds = Array.from(checkboxes).map(box => box.value);
+
+      if (selectedIds.length === 0) {
+        alert("Please select at least one row to delete.");
+        return;
+      }
+
+      if (confirm(`Are you sure you want to permanently delete ${selectedIds.length} request(s) from [${CURRENT_ENV}]?`)) {
+        google.script.run
+          .withSuccessHandler(() => {
+            loadRequests();
+          })
+          .withFailureHandler((err) => alert("Deletion failed: " + err.message))
+          .deleteMultipleRequests(selectedIds, CURRENT_ENV);
+      }
     }
   </script>
 </body>
