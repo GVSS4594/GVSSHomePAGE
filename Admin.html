@@ -49,7 +49,7 @@
 
     .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #dee2e6; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
-    th, td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
     th { background-color: #f8f9fa; font-weight: 600; color: #495057; white-space: nowrap; }
     tr:hover { background-color: #f1f3f5; }
 
@@ -59,6 +59,7 @@
 
     .key-text { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0275d8; letter-spacing: 0.5px; }
     .shop-details { font-size: 13px; line-height: 1.4; }
+    .request-location-address { color: #6c757d; font-size: 11px; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -397,11 +398,12 @@
           ? `<a href="${row.photoUrl}" target="_blank" style="color: #0275d8; text-decoration: none; font-weight: bold;">View 📸</a>`
           : `<span style="color:#aaa;">No Photo</span>`;
 
-        let locText = row.location;
+        let locText = row.location || 'Unknown';
         let locationDisplay = "";
+        let coordinates = parseVisitorCoordinates(locText);
 
-        if (locText.includes(',') && !locText.includes('Error') && !locText.includes('Denied') && !locText.includes('Browser')) {
-            locationDisplay = `<a href="https://www.google.com/maps?q=${encodeURIComponent(locText)}" target="_blank" style="color: #28a745; text-decoration: none; font-weight: bold; margin-top: 4px; display: inline-block;">📍 Map</a>`;
+        if (coordinates) {
+            locationDisplay = `<a href="${getVisitorMapUrl(coordinates)}" target="_blank" rel="noopener noreferrer" style="color: #28a745; text-decoration: none; font-weight: bold; margin-top: 4px; display: inline-block;">📍 Map</a><div class="request-location-address">${escapeHtml(row.address || 'Address unavailable')}</div>`;
         } else if (locText === "Unknown" || locText === "Admin Generated") {
             locationDisplay = `<span style="color:#aaa; font-size: 11px; margin-top: 4px; display: inline-block;">No GPS</span>`;
         } else {
@@ -438,6 +440,12 @@
       });
 
       document.getElementById('selectAll').checked = false;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function(character) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+      });
     }
 
     function approveRequest(rowIndex, sysId, durationCode, machineType) {

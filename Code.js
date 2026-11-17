@@ -233,9 +233,21 @@ function getAllRequests(env) {
   var sheet = SpreadsheetApp.openById(config.SPREADSHEET_ID).getSheetByName(config.SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var requestList = [];
+  var addressCache = {};
 
   for (var i = 1; i < data.length; i++) {
     if (data[i][0]) {
+      var location = String(data[i][5] || "Unknown");
+      var coordinates = parseVisitorCoordinates_(location);
+      var address = "";
+      if (coordinates) {
+        var coordinateKey = coordinates.latitude + "," + coordinates.longitude;
+        if (!Object.prototype.hasOwnProperty.call(addressCache, coordinateKey)) {
+          addressCache[coordinateKey] = getVisitorAddress_(coordinates);
+        }
+        address = addressCache[coordinateKey];
+      }
+
       var timeData = data[i][6];
       var formattedTime = "N/A";
       if (timeData) {
@@ -254,7 +266,8 @@ function getAllRequests(env) {
         duration: String(data[i][2]),
         status: String(data[i][3]),
         key: String(data[i][4] || ""),
-        location: String(data[i][5] || "Unknown"),
+        location: location,
+        address: address,
         timestamp: formattedTime,
         photoUrl: String(data[i][7] || "No Photo"),
         shopName: String(data[i][8] || "N/A"),
