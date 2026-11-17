@@ -45,6 +45,7 @@
     .visitor-calendar-count { font-size: 10px; font-weight: 700; color: #166534; }
     .visitor-records { margin-top: 16px; }
     .visitor-record { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    .visitor-address { color: #475569; margin-top: 3px; }
 
     .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #dee2e6; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px; }
@@ -303,7 +304,29 @@
           records.forEach(function(record) {
             var entry = document.createElement('div');
             entry.className = 'visitor-record';
-            entry.textContent = record.timestamp + ' — ' + (record.location || 'No location recorded');
+            var visitTime = document.createElement('div');
+            visitTime.textContent = record.timestamp;
+            entry.appendChild(visitTime);
+
+            var location = record.location || '';
+            var coordinates = parseVisitorCoordinates(location);
+            if (coordinates) {
+              var mapLink = document.createElement('a');
+              mapLink.href = getVisitorMapUrl(coordinates);
+              mapLink.target = '_blank';
+              mapLink.rel = 'noopener noreferrer';
+              mapLink.textContent = '📍 Open in Google Maps';
+              entry.appendChild(mapLink);
+
+              var address = document.createElement('div');
+              address.className = 'visitor-address';
+              address.textContent = record.address || 'Address unavailable';
+              entry.appendChild(address);
+            } else {
+              var locationText = document.createElement('div');
+              locationText.textContent = location || 'No location recorded';
+              entry.appendChild(locationText);
+            }
             recordsContainer.appendChild(entry);
           });
         })
@@ -316,6 +339,20 @@
           recordsContainer.appendChild(errorMessage);
         })
         .getVisitorRecordsForDate(dateKey);
+    }
+
+    function parseVisitorCoordinates(location) {
+      var match = String(location || '').match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+      if (!match) return null;
+      var latitude = Number(match[1]);
+      var longitude = Number(match[2]);
+      if (!isFinite(latitude) || !isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+      return { latitude: latitude, longitude: longitude };
+    }
+
+    function getVisitorMapUrl(coordinates) {
+      return 'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(coordinates.latitude + ',' + coordinates.longitude);
     }
 
     function loadRequests() {

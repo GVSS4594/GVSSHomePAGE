@@ -132,6 +132,7 @@ function getVisitorRecordsForDate(dateStr) {
 
   var data = sheet.getDataRange().getValues();
   var records = [];
+  var addressCache = {};
   for (var i = 1; i < data.length; i++) {
     var visitDate = data[i][0] instanceof Date
       ? Utilities.formatDate(data[i][0], "Asia/Kolkata", "yyyy-MM-dd")
@@ -141,13 +142,46 @@ function getVisitorRecordsForDate(dateStr) {
     var timestamp = data[i][3] instanceof Date
       ? Utilities.formatDate(data[i][3], "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss")
       : String(data[i][3] || "");
+    var location = String(data[i][2] == null ? "" : data[i][2]);
+    var coordinates = parseVisitorCoordinates_(location);
+    var address = "";
+    if (coordinates) {
+      var coordinateKey = coordinates.latitude + "," + coordinates.longitude;
+      if (!Object.prototype.hasOwnProperty.call(addressCache, coordinateKey)) {
+        addressCache[coordinateKey] = getVisitorAddress_(coordinates);
+      }
+      address = addressCache[coordinateKey];
+    }
     records.push({
       date: visitDate,
       timestamp: timestamp,
-      location: String(data[i][2] == null ? "" : data[i][2])
+      location: location,
+      address: address
     });
   }
   return records;
+}
+
+function parseVisitorCoordinates_(location) {
+  var match = String(location || "").match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (!match) return null;
+  var latitude = Number(match[1]);
+  var longitude = Number(match[2]);
+  if (!isFinite(latitude) || !isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  return { latitude: latitude, longitude: longitude };
+}
+
+function getVisitorAddress_(coordinates) {
+  try {
+    var response = Maps.newGeocoder()
+      .setLanguage("en")
+      .reverseGeocode(coordinates.latitude, coordinates.longitude);
+    if (!response || response.status !== "OK" || !response.results || !response.results.length) return "";
+    return String(response.results[0].formatted_address || "").trim();
+  } catch (error) {
+    console.warn("Visitor address lookup failed: " + error.message);
+    return "";
+  }
 }
 
 function buildVisitorStatsResponse_(dailyMap, todayStr) {
